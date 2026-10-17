@@ -213,6 +213,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/speech": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Question Speech */
+        post: operations["question_speech_api_v1_speech_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -441,6 +458,11 @@ export interface components {
             score: number | null;
             /** Feedback */
             feedback: string | null;
+        };
+        /** QuestionSpeechIn */
+        QuestionSpeechIn: {
+            /** Text */
+            text: string;
         };
         /** Report */
         Report: {
@@ -931,6 +953,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VoiceCheckResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    question_speech_api_v1_speech_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionSpeechIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/mpeg": unknown;
                 };
             };
             /** @description Validation Error */

@@ -1,45 +1,39 @@
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { useQuestionSpeech } from '../src/useQuestionSpeech'
-
-function speech() {
-  class Utterance {
-    text: string
-    constructor(text: string) { this.text = text }
-    onend: (() => void) | null = null
-    onerror: (() => void) | null = null
-  }
-  const synth = { speak: vi.fn(), cancel: vi.fn() }
-  vi.stubGlobal('speechSynthesis', synth)
-  vi.stubGlobal('SpeechSynthesisUtterance', Utterance)
-  return synth
+function setup() {
+  const audio = { onended: null as null | (() => void), onerror: null as null | (() => void), play: vi.fn().mockResolvedValue(undefined), pause: vi.fn(), load: vi.fn(), removeAttribute: vi.fn(), src: '' }
+  vi.stubGlobal('Audio', class { constructor() { return audio } })
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, blob: async () => new Blob(['audio']) }))
+  vi.stubGlobal('URL', { createObjectURL: vi.fn().mockReturnValue('blob:question'), revokeObjectURL: vi.fn() })
+  return audio
 }
-afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
-it('holds recording until speech ends and cancels on unmount', () => {
-  const synth = speech()
-  const { result, unmount } = renderHook(() => useQuestionSpeech('Explain your code.'))
+afterEach(() => vi.unstubAllGlobals())
+it('waits for ElevenLabs audio and releases it when playback ends', async () => {
+  const audio = setup()
+  const { result } = renderHook(() => useQuestionSpeech('Explain your code.'))
   expect(result.current.done).toBe(false)
-  const utterance = synth.speak.mock.calls[0][0]
-  expect(utterance.text).toBe('Explain your code.')
-  act(() => utterance.onend())
+  await waitFor(() => expect(audio.play).toHaveBeenCalled())
+  expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/api/v1/speech'), expect.objectContaining({ body: JSON.stringify({ text: 'Explain your code.' }) }))
+  act(() => audio.onended?.())
   expect(result.current.done).toBe(true)
-  unmount()
-  expect(synth.cancel).toHaveBeenCalled()
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:question')
 })
-it('lets the user retry blocked speech or continue using text', () => {
-  const synth = speech()
+it('supports retry and skip after blocked playback', async () => {
+  const audio = setup()
+  audio.play.mockRejectedValueOnce(new Error('blocked'))
   const { result } = renderHook(() => useQuestionSpeech('Question'))
-  act(() => synth.speak.mock.calls[0][0].onerror())
-  expect(result.current.error).toMatch(/could not be read/)
-  expect(result.current.done).toBe(false)
+  await waitFor(() => expect(result.current.error).toMatch(/could not be read/))
   act(() => result.current.retry())
-  expect(synth.speak).toHaveBeenCalledTimes(2)
+  await waitFor(() => expect(audio.play).toHaveBeenCalledTimes(2))
   act(() => result.current.skip())
   expect(result.current.done).toBe(true)
 })
-it('does not block recording on browsers without speech synthesis', () => {
-  vi.stubGlobal('speechSynthesis', undefined)
+it('allows skipping a failed request', async () => {
+  setup()
+  vi.mocked(fetch).mockResolvedValueOnce({ ok: false } as Response)
   const { result } = renderHook(() => useQuestionSpeech('Question'))
+  await waitFor(() => expect(result.current.error).toMatch(/could not be read/))
+  act(() => result.current.skip())
   expect(result.current.done).toBe(true)
-  expect(result.current.supported).toBe(false)
 })

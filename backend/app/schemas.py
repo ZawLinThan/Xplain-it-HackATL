@@ -229,3 +229,7 @@ class GradeItem(BaseModel):
 
 class GradeOut(BaseModel):
     grades: list[GradeItem]
+
+
+class QuestionSpeechIn(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)

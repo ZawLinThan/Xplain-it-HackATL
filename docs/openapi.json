@@ -544,6 +544,43 @@
         }
       }
     },
+    "/api/v1/speech": {
+      "post": {
+        "tags": [
+          "speech"
+        ],
+        "summary": "Question Speech",
+        "operationId": "question_speech_api_v1_speech_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionSpeechIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "audio/mpeg": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "tags": [
@@ -1131,6 +1168,21 @@
           "feedback"
         ],
         "title": "QuestionResult"
+      },
+      "QuestionSpeechIn": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "QuestionSpeechIn"
       },
       "Report": {
         "properties": {
