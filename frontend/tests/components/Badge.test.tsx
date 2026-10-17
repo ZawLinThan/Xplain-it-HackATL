@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { DemoModeContext } from '../../src/demoMode'
+import type { FeatureKey } from '../../src/features'
 import Badge from '../../src/components/Badge'
 
 describe('Badge', () => {
@@ -33,4 +34,16 @@ describe('Badge', () => {
     render(<Badge feature="preloadedSample" withLabel />)
     expect(screen.getByText(/Preloaded sample assessment/)).toBeInTheDocument()
   })
+})
+
+
+it('labels the preset problem score as simulated', () => {
+  render(<Badge feature="problemScore" withLabel />)
+  expect(screen.getByText('Simulated')).toBeInTheDocument()
+  expect(screen.getByText(/Preset problem score/)).toBeInTheDocument()
+})
+
+it('does not crash or invent a status for an unknown runtime feature', () => {
+  const { container } = render(<Badge feature={'missing-feature' as FeatureKey} />)
+  expect(container).toBeEmptyDOMElement()
 })

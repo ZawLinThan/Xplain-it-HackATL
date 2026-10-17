@@ -39,7 +39,10 @@ Calibration is rejected when the targets cannot be distinguished or the center c
 The mapping stays only in memory for this page; recalibrate after moving the camera or
 changing seating. Without this step, the detector uses its approximate fixed-gain mapping.
 
-The real tracker filters isolated spikes and smooths samples over about 100 ms. Raw values
+The real tracker filters isolated spikes and smooths horizontal samples over about 100 ms,
+vertical samples over 160 ms, with a cap on vertical jumps. Closing/reopening eye frames
+are excluded from tracking and calibration, including 180 ms after a detected blink. Brief
+blinks hold the dot; after 400 ms without a reliable gaze sample the tracker reports unknown. Raw values
 remain unclipped until calibration is applied. This is still an approximate webcam look-away
 detector; a fitted debug dot is not a guarantee of accurate screen coordinates.
 

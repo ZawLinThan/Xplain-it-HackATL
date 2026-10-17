@@ -12,13 +12,14 @@ export default function GazeDebugOverlay({ monitor }: { monitor: LookAwayMonitor
     () => monitor.getSnapshot(),
   )
   const pct = `${DEFAULT_OPTIONS.band * 100}%`
-  const band = { position: 'fixed', background: 'rgba(255, 0, 0, 0.10)', pointerEvents: 'none', zIndex: 9999 } as const
+  const edge = '2px solid rgba(255, 45, 45, 0.95)'
+  const band = { position: 'fixed', background: 'transparent', pointerEvents: 'none', zIndex: 9999 } as const
   return (
     <div data-testid="gaze-debug" aria-hidden="true">
-      <div style={{ ...band, top: 0, left: 0, right: 0, height: pct }} />
-      <div style={{ ...band, bottom: 0, left: 0, right: 0, height: pct }} />
-      <div style={{ ...band, top: 0, bottom: 0, left: 0, width: pct }} />
-      <div style={{ ...band, top: 0, bottom: 0, right: 0, width: pct }} />
+      <div style={{ ...band, top: 0, left: 0, right: 0, height: pct, borderBottom: edge }} />
+      <div style={{ ...band, bottom: 0, left: 0, right: 0, height: pct, borderTop: edge }} />
+      <div style={{ ...band, top: 0, bottom: 0, left: 0, width: pct, borderRight: edge }} />
+      <div style={{ ...band, top: 0, bottom: 0, right: 0, width: pct, borderLeft: edge }} />
       {snap.sample && (
         <div
           style={{
@@ -50,7 +51,7 @@ export default function GazeDebugOverlay({ monitor }: { monitor: LookAwayMonitor
           zIndex: 10000,
         }}
       >
-        debug · tracked {String(snap.tracked)} · counting {String(snap.counting)} · look-aways {snap.count}
+        look-aways {snap.count} 
       </div>
     </div>
   )

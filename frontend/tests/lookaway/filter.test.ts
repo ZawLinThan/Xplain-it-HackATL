@@ -15,6 +15,16 @@ describe('GazeFilter', () => {
     expect(result.gy).toBeGreaterThan(0.99)
   })
 
+  it('limits vertical jumps even when a calibrated sample is extreme', () => {
+    const filter = new GazeFilter()
+    filter.push({ gx: 0.5, gy: 0.5 }, 0)
+    filter.push({ gx: 0.5, gy: 0.5 }, 66)
+    filter.push({ gx: 0.5, gy: -10 }, 132)
+    const result = filter.push({ gx: 0.5, gy: -10 }, 198)!
+    expect(result.gy).toBeGreaterThan(0.4)
+    expect(result.gx).toBe(0.5)
+  })
+
   it('reports face loss immediately and resets the old gaze', () => {
     const filter = new GazeFilter()
     filter.push({ gx: 0, gy: 0 }, 0)

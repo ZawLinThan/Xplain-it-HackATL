@@ -5,7 +5,7 @@ export const GAZE = {
   yawGain: 2.2, // head turn: nose offset from the cheek midpoint, as a share of face width
   pitchGain: 2.2, // head tilt: nose offset from the forehead-chin midpoint, as a share of face height
   irisGain: 1.4, // eyes only: iris offset inside the eye corners, as a share of eye width
-  verticalIrisGain: 4.5,
+  verticalIrisGain: 3.0,
   positionGain: 0.6, // where the face sits in the camera frame
 } as const
 

@@ -105,11 +105,11 @@ export default function ReportScreen({ sessionId, onRestart }: ReportScreenProps
         )}
         <dl className="parts">
           <div>
-            <dt>Problem score <Badge feature="problemScore" /></dt>
+            <dt>Problem score </dt>
             <dd>{percent(report.problem_score)} <span className="muted">· weight {percent(wp)}</span></dd>
           </div>
           <div>
-            <dt>Explanation score <Badge feature="grading" /></dt>
+            <dt>Explanation score </dt>
             <dd>
               {report.explanation_score === null ? 'Not graded yet' : percent(report.explanation_score)}{' '}
               <span className="muted">· weight {percent(we)}</span>

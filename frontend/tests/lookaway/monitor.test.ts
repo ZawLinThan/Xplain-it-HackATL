@@ -115,6 +115,65 @@ describe('LookAwayMonitor', () => {
     warn.mockRestore()
   })
 
+  it('never adds events while counting is false, including late samples after halt', async () => {
+    const t = new ScriptedTracker()
+    const c = clock()
+    const m = new LookAwayMonitor(t, {}, c.now)
+    await m.attach(video)
+    feed(t, c, { gx: 0.02, gy: 0.5 }, 4000)
+    feed(t, c, null, 2000)
+    expect(m.getSnapshot()).toMatchObject({ counting: false, count: 0 })
+    // Use fewer than five calibration samples in a fresh monitor to keep the reference neutral.
+    const active = new LookAwayMonitor(t, {}, c.now)
+    await active.attach(video)
+    active.beginCounting()
+    feed(t, c, { gx: 0.02, gy: 0.5 }, 100)
+    const recorded = active.payload()
+    expect(recorded.events.length).toBeGreaterThan(0)
+    active.stopCounting()
+    feed(t, c, { gx: 0.02, gy: 0.5 }, 4000)
+    feed(t, c, null, 2000)
+    expect(active.getSnapshot()).toMatchObject({ counting: false, count: recorded.events.length })
+    expect(active.payload()).toEqual(recorded)
+    active.halt()
+    feed(t, c, { gx: 0.98, gy: 0.98 }, 4000)
+    expect(active.payload()).toEqual(recorded)
+    m.dispose()
+    active.dispose()
+  })
+
+  it('does not restart a stopped answer when a late recording-start callback arrives', async () => {
+    const t = new ScriptedTracker()
+    const c = clock()
+    const m = new LookAwayMonitor(t, {}, c.now)
+    await m.attach(video)
+    m.beginCounting()
+    feed(t, c, { gx: 0.02, gy: 0.5 }, 100)
+    m.halt()
+    const saved = m.payload()
+    m.beginCounting()
+    feed(t, c, { gx: 0.02, gy: 0.5 }, 5000)
+    expect(m.getSnapshot()).toMatchObject({ counting: false, count: saved.events.length })
+    expect(m.payload()).toEqual(saved)
+  })
+
+  it('ignores a tracker startup and samples that finish after halt', async () => {
+    const t = new ScriptedTracker()
+    let finish!: () => void
+    t.start.mockImplementation((_video, cb) => {
+      t.emit = cb
+      return new Promise<void>((resolve) => { finish = resolve })
+    })
+    const m = new LookAwayMonitor(t)
+    const attaching = m.attach(video)
+    m.halt()
+    finish()
+    await attaching
+    m.beginCounting()
+    t.emit({ gx: 0, gy: 0 })
+    expect(m.getSnapshot()).toMatchObject({ counting: false, tracked: false, count: 0, sample: null })
+  })
+
   it('stops the tracker on halt and on dispose', async () => {
     const t = new ScriptedTracker()
     const m = new LookAwayMonitor(t)

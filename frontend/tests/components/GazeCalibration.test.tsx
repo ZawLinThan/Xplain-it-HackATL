@@ -5,7 +5,7 @@ import { hasCalibration, setCalibration } from '../../src/lookaway/calibration'
 import { estimateRawGaze } from '../../src/lookaway/gaze'
 import { loadLandmarker } from '../../src/lookaway/MediaPipeFaceTracker'
 
-vi.mock('../../src/lookaway/gaze', () => ({ estimateRawGaze: vi.fn() }))
+vi.mock('../../src/lookaway/gaze', async (importOriginal) => ({ ...await importOriginal<typeof import('../../src/lookaway/gaze')>(), estimateRawGaze: vi.fn() }))
 vi.mock('../../src/lookaway/MediaPipeFaceTracker', () => ({ loadLandmarker: vi.fn() }))
 const detect = vi.fn(() => ({ faceLandmarks: [[{}]] }))
 const targets = [

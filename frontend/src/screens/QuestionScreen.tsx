@@ -7,6 +7,7 @@ import Badge from '../components/Badge'
 import GazeDebugOverlay from '../components/GazeDebugOverlay'
 import { useAppConfig } from '../demoMode'
 import { LookAwayMonitor, createTracker, type LookawayPayload } from '../lookaway'
+import { createLevelChannel } from '../visuals/audioLevel'
 import Recorder from '../Recorder'
 import { AUTO_ADVANCE_MS } from '../timing'
 import { useQuestionSpeech } from '../useQuestionSpeech'
@@ -41,6 +42,7 @@ export default function QuestionScreen({
   onNext,
   onSessionLost,
 }: QuestionScreenProps) {
+  const [levels] = useState(createLevelChannel)
   const [question, setQuestion] = useState<QuestionPublic | null>(null)
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [attempt, setAttempt] = useState(0)
@@ -115,7 +117,7 @@ export default function QuestionScreen({
 
   return (
     <main className="assessment-stage active-round">
-      <StageBackdrop phase={phase.kind === 'uploading' ? 'processing' : phase.kind === 'upload-failed' || phase.kind === 'load-failed' ? 'error' : answering && reveal.done && speech.done ? 'listening' : 'ready'} />
+      <StageBackdrop levelSource={levels.subscribe} phase={phase.kind === 'uploading' ? 'processing' : phase.kind === 'upload-failed' || phase.kind === 'load-failed' ? 'error' : answering && reveal.done && speech.done ? 'listening' : 'ready'} />
       <div className="round-content">
       <header>
         <p className="eyebrow">
@@ -174,6 +176,7 @@ export default function QuestionScreen({
           autoStart
           hold={!reveal.done || !speech.done}
           onStarted={() => monitor.beginCounting()}
+          onLevel={levels.publish}
           onVideoReady={(video) => void monitor.attach(video)}
         />
       )}

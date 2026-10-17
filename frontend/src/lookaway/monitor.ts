@@ -34,6 +34,8 @@ export class LookAwayMonitor {
   private failed = false
   private warned = false
   private counting = false
+  private halted = false
+  private generation = 0
   private calibration: { x: number[]; y: number[] } = { x: [], y: [] }
   private offset = { x: 0, y: 0 }
   private last: GazeSample | null = null
@@ -51,21 +53,27 @@ export class LookAwayMonitor {
   }
 
   async attach(video: HTMLVideoElement | null): Promise<void> {
+    if (this.halted) return
+    const generation = ++this.generation
     if (!this.tracker || !video) {
       this.markFailed('no camera or tracker')
       return
     }
     try {
-      await this.tracker.start(video, (s) => this.onSample(s))
+      await this.tracker.start(video, (s) => {
+        if (generation === this.generation && !this.halted) this.onSample(s)
+      })
+      if (generation !== this.generation || this.halted) return
       this.tracked = true
       this.publish()
     } catch (error) {
+      if (generation !== this.generation || this.halted) return
       this.markFailed(error instanceof Error ? error.message : 'tracker failed')
     }
   }
 
   beginCounting(): void {
-    if (this.counting) return
+    if (this.counting || this.halted || this.counter !== null) return
     if (!this.tracker?.calibrated && this.calibration.x.length >= MIN_CALIBRATION_SAMPLES) {
       // the median, so a glance away while reading cannot move the centre
       this.offset = { x: median(this.calibration.x) - 0.5, y: median(this.calibration.y) - 0.5 }
@@ -83,14 +91,18 @@ export class LookAwayMonitor {
 
   /** Stop watching the camera (the recording is over) but keep the result. */
   halt(): void {
-    this.tracker?.stop()
+    this.halted = true
+    this.generation++
     this.counting = false
     this.publish()
+    this.tracker?.stop()
   }
 
   dispose(): void {
-    this.tracker?.stop()
+    this.generation++
     this.counting = false
+    this.publish()
+    this.tracker?.stop()
     this.listeners.clear()
   }
 

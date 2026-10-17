@@ -1,6 +1,6 @@
 import type { GazeSample } from './types'
 
-/** Suppress isolated landmark spikes, then smooth with a frame-rate independent 100 ms lag. */
+/** Suppress isolated spikes; smooth horizontal movement over 100 ms and vertical over 160 ms. */
 export class GazeFilter {
   private history: GazeSample[] = []
   private last: GazeSample | null = null
@@ -23,9 +23,12 @@ export class GazeFilter {
       return values[Math.floor(values.length / 2)]
     }
     const target = { gx: middle('gx'), gy: middle('gy') }
+    const dt = Math.max(0, now - this.time)
+    const verticalAlpha = 1 - Math.exp(-dt / 160)
+    const maxVerticalStep = Math.min(dt, 100) / 1000 * 1.5
     const alpha = 1 - Math.exp(-Math.max(0, now - this.time) / 100)
     this.last = this.last
-      ? { gx: this.last.gx + alpha * (target.gx - this.last.gx), gy: this.last.gy + alpha * (target.gy - this.last.gy) }
+      ? { gx: this.last.gx + alpha * (target.gx - this.last.gx), gy: this.last.gy + Math.max(-maxVerticalStep, Math.min(maxVerticalStep, verticalAlpha * (target.gy - this.last.gy))) }
       : target
     this.time = now
     return this.last

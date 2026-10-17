@@ -133,3 +133,13 @@ h3 { font-size: 17px; }
   .results-content .parts { margin-top: 20px; }
   .card { break-inside: avoid; }
 }
+
+/* Microphone amplitude moves the decorative paths; text and controls stay still. */
+.energy-field .voice-motion {
+  transform-box: view-box;
+  transform-origin: center;
+  transform: translateY(calc(var(--energy, 0) * -22px)) scale(calc(1 + var(--energy, 0) * .09));
+  transition: transform 100ms ease-out;
+}
+.energy-field .flow-lines { opacity: calc(.5 + var(--energy, 0) * .45); }
+.energy-field.still .voice-motion { transform: none; transition: none; }

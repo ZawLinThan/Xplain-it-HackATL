@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadLandmarker } from '../lookaway/MediaPipeFaceTracker'
+import { BlinkGate } from '../lookaway/blink'
 import { estimateRawGaze } from '../lookaway/gaze'
 import { applyCalibration, fitCalibration, setCalibration, type CalibrationPair } from '../lookaway/calibration'
 import type { GazeSample } from '../lookaway/types'
@@ -23,6 +24,7 @@ export default function GazeCalibration({ video, onClose }: {
     setCalibration(null)
     loadLandmarker().then((model) => {
       if (!alive) return
+      const blink = new BlinkGate()
       let index = 0
       let since = performance.now()
       let lastVideoTime = -1
@@ -40,7 +42,7 @@ export default function GazeCalibration({ video, onClose }: {
         lastVideoTime = video.currentTime
         try {
           const face = model.detectForVideo(video, now).faceLandmarks[0]
-          const raw = face ? estimateRawGaze(face) : null
+          const raw = face && blink.accepts(face, now) ? estimateRawGaze(face) : null
           if (raw && now - since >= 900) samples.push(raw)
           if (now - since < 2100 || samples.length < 10) return
           const rawMedian = { gx: median(samples.map((s) => s.gx)), gy: median(samples.map((s) => s.gy)) }

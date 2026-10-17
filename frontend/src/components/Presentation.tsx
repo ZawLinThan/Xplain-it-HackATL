@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { EnergyField, type VisualPhase } from '../visuals/EnergyField'
+import type { LevelSource } from '../visuals/audioLevel'
 import { useReducedMotion } from '../visuals/useReducedMotion'
 
 export function Brand() {
@@ -10,11 +11,11 @@ export function PageBrand() {
   return <div className="site-header page-brand no-print"><Brand /></div>
 }
 
-export function StageBackdrop({ phase = 'ready' }: { phase?: VisualPhase }) {
+export function StageBackdrop({ phase = 'ready', levelSource }: { phase?: VisualPhase; levelSource?: LevelSource }) {
   const prefersReduced = useReducedMotion()
   const [reduce, setReduce] = useState(false)
   return <>
-    <EnergyField phase={phase} amplitude={0} reducedMotion={prefersReduced || reduce} quality="standard" />
+    <EnergyField phase={phase} amplitude={0} levelSource={levelSource} reducedMotion={prefersReduced || reduce} quality="standard" />
     <div className="stage-header no-print"><Brand /><label className="motion-control"><input type="checkbox" checked={prefersReduced || reduce} disabled={prefersReduced} onChange={(e) => setReduce(e.target.checked)} /> Reduce motion</label></div>
   </>
 }

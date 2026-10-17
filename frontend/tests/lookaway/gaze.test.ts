@@ -48,8 +48,8 @@ describe('estimateGaze', () => {
   })
 
   it('uses vertical eye motion and ignores nearly closed eyelids', () => {
-    expect(estimateGaze(face({ irisShiftY: -0.006 }))!.gy).toBeCloseTo(0.05)
-    expect(estimateGaze(face({ irisShiftY: 0.006 }))!.gy).toBeCloseTo(0.95)
+    expect(estimateGaze(face({ irisShiftY: -0.006 }))!.gy).toBeCloseTo(0.2)
+    expect(estimateGaze(face({ irisShiftY: 0.006 }))!.gy).toBeCloseTo(0.8)
     const closed = face({ irisShiftY: 0.006 })
     closed[LM.eyeRightLower] = closed[LM.eyeRightUpper]
     closed[LM.eyeLeftLower] = closed[LM.eyeLeftUpper]

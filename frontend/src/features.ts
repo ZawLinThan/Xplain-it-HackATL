@@ -8,7 +8,6 @@ export const FEATURES = {
   questionWriting: { label: 'LLM writes the questions', status: 'working' },
   spokenAnswers: { label: 'Spoken answers with a 40-second cap', status: 'working' },
   transcription: { label: 'Speech-to-text transcript', status: 'working' },
-  grading: { label: 'Grading against expected answers', status: 'working' },
   lookAway: { label: 'Look-away count for your instructor', status: 'working' },
   typedAnswers: { label: 'Typed-answer accommodation', status: 'planned' },
 
@@ -27,9 +26,8 @@ export const STATUS_TEXT: Record<FeatureStatus, string> = {
 export const DEMO_OVERRIDES: Partial<Record<FeatureKey, FeatureStatus>> = {
   questionWriting: 'simulated',
   transcription: 'simulated',
-  grading: 'simulated',
 }
 
 export function statusOf(feature: FeatureKey, demoMode: boolean): FeatureStatus {
-  return (demoMode && DEMO_OVERRIDES[feature]) || FEATURES[feature].status
+  return (demoMode && DEMO_OVERRIDES[feature]) || FEATURES[feature]?.status
 }
