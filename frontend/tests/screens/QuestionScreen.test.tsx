@@ -15,19 +15,25 @@ vi.mock('../../src/Recorder', () => ({
     onComplete,
     hold,
     autoStart,
+    onRecordingChange,
   }: {
     onComplete: (b: Blob, s: number) => void
     hold?: boolean
     autoStart?: boolean
+    onRecordingChange?: (recording: boolean) => void
   }) => (
-    <button
-      type="button"
-      data-hold={String(hold)}
-      data-auto={String(autoStart)}
-      onClick={() => onComplete(new Blob(['x'], { type: 'audio/webm' }), 12.3)}
-    >
-      finish recording
-    </button>
+    <>
+      <button
+        type="button"
+        data-hold={String(hold)}
+        data-auto={String(autoStart)}
+        onClick={() => onComplete(new Blob(['x'], { type: 'audio/webm' }), 12.3)}
+      >
+        finish recording
+      </button>
+      <button type="button" data-testid="recorder-live" onClick={() => onRecordingChange?.(true)} />
+      <button type="button" data-testid="recorder-ended" onClick={() => onRecordingChange?.(false)} />
+    </>
   ),
 }))
 
@@ -123,6 +129,36 @@ describe('QuestionScreen flow', () => {
     unmount()
     setup(1, { ...DEFAULT_CONFIG, debug_borders: true })
     expect(await screen.findByTestId('gaze-debug')).toBeInTheDocument()
+  })
+
+  it('shows listening only while the recorder actually records, not when read-aloud ends', async () => {
+    setup()
+    const recorder = await screen.findByRole('button', { name: 'finish recording' })
+    const scene = () => document.querySelector('.neural-scene') as HTMLElement
+    await waitFor(() => expect(recorder).toHaveAttribute('data-hold', 'false'), { timeout: 4000 })
+    expect(scene().dataset.phase).toBe('ready') // reveal and speech are done, but nothing records yet
+    expect(screen.queryByText(/listening to your explanation/i)).toBeNull()
+    fireEvent.click(screen.getByTestId('recorder-live'))
+    expect(scene().dataset.phase).toBe('listening')
+    expect(screen.getByText(/listening to your explanation/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('recorder-ended')) // track ended or capture failed
+    expect(scene().dataset.phase).toBe('ready')
+    fireEvent.click(screen.getByTestId('recorder-live'))
+    fireEvent.click(recorder)
+    expect(scene().dataset.phase).toBe('processing')
+    await screen.findByText('Because sets are fast.')
+    expect(scene().dataset.phase).toBe('review')
+    // Visual state changes never trigger another question fetch or submission.
+    expect(getQuestion).toHaveBeenCalledTimes(1)
+    expect(submitAnswer).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows hubs as progress only, with no score during the round', async () => {
+    setup(2)
+    await screen.findByRole('button', { name: 'finish recording' })
+    const markers = [...document.querySelectorAll('.hub-progress li')].map((li) => li.className)
+    expect(markers).toEqual(['done', 'active', ''])
+    document.querySelectorAll<SVGGElement>('[data-hub-id]').forEach((hub) => expect(hub.dataset.lit).toBeUndefined())
   })
 
   it('shows no look-away or flag wording to the student', async () => {

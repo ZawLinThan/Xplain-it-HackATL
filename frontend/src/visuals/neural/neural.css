@@ -1,0 +1,131 @@
+/* Neural spatial experience. Scoped to the scene, the hero, the round and the results map. */
+
+.neural-scene { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.neural-canvas-host { position: absolute; inset: 0; }
+.neural-canvas { display: block; width: 100%; height: 100%; animation: neural-in 700ms ease-out both; }
+.neural-fallback { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+@keyframes neural-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---- Oral round: the network fills the viewport behind real HTML. */
+.neural-assessment {
+  position: fixed; z-index: -1;
+  background:
+    radial-gradient(ellipse 55% 45% at 22% 18%, #140d30 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 86% 62%, #0a1236 0%, transparent 70%),
+    var(--page-immersive);
+}
+.neural-assessment[data-phase=error] .neural-canvas { filter: saturate(.55); }
+/* A soft darkening behind the question keeps contrast stable without a hard card. */
+.neural-reading-veil {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse 42% 30% at 50% 44%, #05050de0 0%, #05050d99 50%, transparent 82%);
+}
+.round-content .hub-progress { display: flex; justify-content: center; align-items: center; gap: 0; margin: 14px 0 0; padding: 0; list-style: none; }
+.hub-progress li {
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums;
+  color: #8d839f; border: 1px solid #3a3350; background: #0b0a16;
+  transition: border-color var(--motion-standard), color var(--motion-standard), box-shadow var(--motion-standard);
+}
+.hub-progress li + li { margin-left: 26px; position: relative; }
+.hub-progress li + li::before { content: ''; position: absolute; right: calc(100% + 3px); width: 20px; top: 50%; border-top: 1px solid #2c2740; }
+.hub-progress li.done { color: #c9c4d9; border-color: #6d6782; }
+.hub-progress li.active { color: #f6f4ff; border-color: #cbb8ff; box-shadow: 0 0 0 4px #8a5cff24, 0 0 18px #8a5cff55; }
+.neural-state-label { margin: 0; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #9fd8ff; }
+
+/* Looping sweep for waits; it never claims progress. */
+.neural-glyph { display: flex; justify-content: center; align-items: center; gap: 18px; height: 28px; position: relative; }
+.neural-glyph::before { content: ''; position: absolute; left: calc(50% - 30px); width: 60px; top: 50%; border-top: 1px solid #3c3360; }
+.neural-glyph i { width: 8px; height: 8px; border-radius: 50%; background: #3a2f63; box-shadow: 0 0 0 1px #6c5bb0; position: relative; animation: neural-sweep 1.8s ease-in-out infinite; }
+.neural-glyph i:nth-child(2) { animation-delay: .3s; }
+.neural-glyph i:nth-child(3) { animation-delay: .6s; }
+@keyframes neural-sweep { 0%, 100% { background: #3a2f63; box-shadow: 0 0 0 1px #6c5bb0; } 35% { background: #e9e1ff; box-shadow: 0 0 14px 3px #8a5cffaa; } }
+
+/* ---- Landing: a restrained sculpture beside the headline. */
+.landing-page .hero.hero-with-sculpture {
+  max-width: 1200px; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center; gap: 12px; text-align: left; padding: 24px 5.5vw 72px;
+}
+.hero-with-sculpture .hero-copy { position: relative; z-index: 1; }
+.hero-with-sculpture .hero-hint { justify-content: flex-start; margin-left: 0; }
+.landing-page .hero-with-sculpture h1 { font-size: clamp(44px, 5.4vw, 78px); }
+.landing-page .hero-with-sculpture .hero-support { margin: 0 0 32px; }
+.hero-sculpture {
+  position: relative; aspect-ratio: 1 / 1; width: 100%; max-width: 620px; justify-self: end;
+  transition: opacity var(--motion-scene) ease;
+}
+.hero-sculpture::before {
+  content: ''; position: absolute; inset: 6%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 46% 48%, #e7e0ff 0%, #efeafc99 38%, transparent 70%);
+}
+.hero-sculpture .neural-scene {
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 62%, transparent 80%);
+  mask-image: radial-gradient(circle at 50% 50%, #000 62%, transparent 80%);
+}
+.hero-sculpture[data-paused=true] { opacity: .4; }
+
+/* ---- Results: the constellation becomes inspectable. */
+.explanation-map { display: flex; flex-direction: column; gap: 14px; }
+.map-header h2 { margin-bottom: 2px; }
+.map-header p { margin: 0; }
+.map-layout {
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); border-radius: 24px; overflow: hidden;
+  background: #05050d; color: #f6f4ff; box-shadow: 0 24px 60px #1d163329; min-height: 460px;
+}
+.map-stage {
+  position: relative; min-height: 460px; isolation: isolate;
+  background:
+    radial-gradient(ellipse 60% 55% at 28% 30%, #170f38 0%, transparent 72%),
+    radial-gradient(ellipse 55% 60% at 78% 70%, #0b1438 0%, transparent 72%),
+    #05050d;
+}
+.map-stage .neural-scene { z-index: 0; }
+.map-hotspots { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.explanation-map .map-hotspot {
+  position: absolute; left: 0; top: 0; width: 84px; height: 84px; margin: -42px 0 0 -42px; padding: 0;
+  border: 0; border-radius: 50%; background: transparent; pointer-events: auto; cursor: pointer; min-height: 0;
+}
+.explanation-map .map-hotspot:hover:not(:disabled) { background: transparent; }
+.map-hotspot-label {
+  position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); white-space: nowrap;
+  font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #a9a3c0;
+  text-shadow: 0 1px 8px #05050d;
+}
+.map-hotspot.selected .map-hotspot-label, .map-hotspot:hover .map-hotspot-label { color: #f6f4ff; }
+.map-legend { position: absolute; left: 22px; bottom: 16px; margin: 0; font-size: 11px; color: #8d839f; z-index: 1; }
+.map-detail { background: #0c0b16; border-left: 1px solid #211e31; padding: 26px; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.map-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.explanation-map .map-choices button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; min-height: 52px;
+  background: #ffffff06; border: 1px solid #2c2840; color: #d8d3e8; border-radius: 12px; font-size: 12px; text-align: left;
+}
+.explanation-map .map-choices button:hover:not(:disabled) { background: #ffffff10; }
+.explanation-map .map-choices button[aria-pressed=true] { border-color: #b89bff; background: #8a5cff1f; color: #f6f4ff; }
+.map-choices small { font-size: 11px; color: #a9a3c0; font-variant-numeric: tabular-nums; }
+.map-answer { display: flex; flex-direction: column; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
+.map-answer .eyebrow { color: #a99fca; margin: 0; }
+.map-answer h3 { font-size: 17px; line-height: 1.5; font-weight: 550; margin: 0 0 6px; }
+.map-answer .label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #8d839f; margin: 8px 0 0; }
+.map-answer p { margin: 0; font-size: 14px; color: #d8d3e8; }
+.map-score { display: flex; align-items: baseline; gap: 10px; }
+.map-score .label { margin: 0; }
+.map-score strong { font-size: 22px; font-weight: 550; color: #f6f4ff; font-variant-numeric: tabular-nums; }
+.map-answer blockquote { margin: 0; padding-left: 14px; border-left: 2px solid #6a52b8; color: #e1daed; font-size: 14px; line-height: 1.7; }
+.map-jump { margin-top: 6px; font-size: 13px; color: #c3a8ff; }
+
+@media (max-width: 860px) {
+  .landing-page .hero.hero-with-sculpture { grid-template-columns: 1fr; text-align: center; padding: 8px 24px 56px; gap: 0; }
+  .hero-with-sculpture .hero-hint { justify-content: center; }
+  .landing-page .hero-with-sculpture .hero-support { margin: 0 auto 28px; }
+  .hero-sculpture { order: -1; justify-self: center; width: min(78vw, 300px); }
+  .map-layout { grid-template-columns: 1fr; }
+  .map-stage { min-height: 320px; }
+  .map-detail { border-left: 0; border-top: 1px solid #211e31; }
+}
+@media (max-width: 420px) {
+  .map-choices { grid-template-columns: 1fr; }
+  .hero-sculpture { width: min(70vw, 240px); }
+}
+@media print {
+  .neural-scene, .neural-reading-veil, .explanation-map { display: none !important; }
+}

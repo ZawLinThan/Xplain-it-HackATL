@@ -6,19 +6,21 @@ import Badge from '../../src/components/Badge'
 
 describe('Badge', () => {
   it('shows the live-build label by default', () => {
-    render(<Badge feature="grading" />)
+    render(<Badge feature="transcription" />)
     expect(screen.getByText('Working')).toBeInTheDocument()
   })
 
   it('says Simulated for canned output in demo mode', () => {
     render(
       <DemoModeContext.Provider value={true}>
-        <Badge feature="grading" />
         <Badge feature="transcription" />
         <Badge feature="questionWriting" />
+        <Badge feature="spokenAnswers" />
       </DemoModeContext.Provider>,
     )
-    expect(screen.getAllByText('Simulated')).toHaveLength(3)
+    // Only canned services change; real spoken-answer capture stays Working.
+    expect(screen.getAllByText('Simulated')).toHaveLength(2)
+    expect(screen.getByText('Working')).toBeInTheDocument()
   })
 
   it('never upgrades something that is only planned', () => {
@@ -31,16 +33,9 @@ describe('Badge', () => {
   })
 
   it('can show the feature name', () => {
-    render(<Badge feature="preloadedSample" withLabel />)
-    expect(screen.getByText(/Preloaded sample assessment/)).toBeInTheDocument()
+    render(<Badge feature="spokenAnswers" withLabel />)
+    expect(screen.getByText(/Spoken answers with a 40-second cap/)).toBeInTheDocument()
   })
-})
-
-
-it('labels the preset problem score as simulated', () => {
-  render(<Badge feature="problemScore" withLabel />)
-  expect(screen.getByText('Simulated')).toBeInTheDocument()
-  expect(screen.getByText(/Preset problem score/)).toBeInTheDocument()
 })
 
 it('does not crash or invent a status for an unknown runtime feature', () => {

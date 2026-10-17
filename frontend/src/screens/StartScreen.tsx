@@ -12,6 +12,11 @@ import FileDrop from '../components/FileDrop'
 import FilesDrop from '../components/FilesDrop'
 import { useAppConfig } from '../demoMode'
 import { preloadTracker } from '../lookaway'
+import { NeuralScene } from '../visuals/neural/NeuralScene'
+import type { QuestionVisual } from '../visuals/neural/sceneTypes'
+import { useReducedMotion } from '../visuals/useReducedMotion'
+
+const NO_HUBS: QuestionVisual[] = []
 
 interface StartScreenProps {
   /** Message from a failed attempt (backend down, expired session, ...). */
@@ -54,6 +59,7 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
     answers: null,
   })
   const [upload, setUpload] = useState<Upload>({ kind: 'none' })
+  const reducedMotion = useReducedMotion()
 
   // Warm up the look-away model while the student reads this screen.
   useEffect(() => preloadTracker(config.gaze_tracking), [config.gaze_tracking])
@@ -136,12 +142,18 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
     <main className="landing-page">
       <div className="landing-content" inert={setupOpen}>
         <header className="site-header"><Brand /></header>
-        <section className="hero">
-          <div className="hero-hint" aria-hidden="true"><span /><span /><span /></div>
-          <p className="eyebrow"> Show what you understand.</p>
-          <h1>You did it? <br />Then <span>show it!</span></h1>
-          <p className="hero-support">Answer a few questions about your assignment and explain the thinking behind your work.</p>
-          <button type="button" className="button" onClick={() => setSetupOpen(true)}> Start explaining <span className="button-arrow" aria-hidden="true">↗</span></button>
+        <section className="hero hero-with-sculpture">
+          <div className="hero-copy">
+            <div className="hero-hint" aria-hidden="true"><span /><span /><span /></div>
+            <p className="eyebrow"> Show what you understand.</p>
+            <h1>You did it? <br />Then <span>show it!</span></h1>
+            <p className="hero-support">Answer a few questions about your assignment and explain the thinking behind your work.</p>
+            <button type="button" className="button" onClick={() => setSetupOpen(true)}> Start explaining <span className="button-arrow" aria-hidden="true">↗</span></button>
+          </div>
+          {/* Idle decoration only: no device is opened to animate it, and it rests while setup is open. */}
+          <div className="hero-sculpture" data-paused={setupOpen} aria-hidden="true">
+            <NeuralScene mode="landing" phase="idle" seed="explain-it" questions={NO_HUBS} reducedMotion={reducedMotion} paused={setupOpen} />
+          </div>
         </section>
       </div>
       {setupOpen && <SetupDialog onClose={closeSetup}>

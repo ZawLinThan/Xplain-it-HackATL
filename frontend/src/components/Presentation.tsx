@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { EnergyField, type VisualPhase } from '../visuals/EnergyField'
 import type { LevelSource } from '../visuals/audioLevel'
+import { NeuralScene } from '../visuals/neural/NeuralScene'
+import type { NeuralPhase, QuestionVisual } from '../visuals/neural/sceneTypes'
 import { useReducedMotion } from '../visuals/useReducedMotion'
 
 export function Brand() {
@@ -11,11 +12,24 @@ export function PageBrand() {
   return <div className="site-header page-brand no-print"><Brand /></div>
 }
 
-export function StageBackdrop({ phase = 'ready', levelSource }: { phase?: VisualPhase; levelSource?: LevelSource }) {
+const NO_QUESTIONS: QuestionVisual[] = []
+
+interface StageBackdropProps {
+  phase?: NeuralPhase
+  /** Same seed on every assessment screen so the network keeps its shape between questions. */
+  seed?: string
+  questions?: QuestionVisual[]
+  activeQuestionId?: string
+  levelSource?: LevelSource
+}
+
+export function StageBackdrop({ phase = 'ready', seed = 'explain-it', questions = NO_QUESTIONS, activeQuestionId, levelSource }: StageBackdropProps) {
   const prefersReduced = useReducedMotion()
   const [reduce, setReduce] = useState(false)
   return <>
-    <EnergyField phase={phase} amplitude={0} levelSource={levelSource} reducedMotion={prefersReduced || reduce} quality="standard" />
+    <NeuralScene mode="assessment" phase={phase} seed={seed} questions={questions} activeQuestionId={activeQuestionId}
+      levelSource={levelSource} reducedMotion={prefersReduced || reduce} />
+    <div className="neural-reading-veil" aria-hidden="true" />
     <div className="stage-header no-print"><Brand /><label className="motion-control"><input type="checkbox" checked={prefersReduced || reduce} disabled={prefersReduced} onChange={(e) => setReduce(e.target.checked)} /> Reduce motion</label></div>
   </>
 }

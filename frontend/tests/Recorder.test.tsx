@@ -191,6 +191,29 @@ describe('Recorder', () => {
     expect(camera.stop).toHaveBeenCalled()
   })
 
+  it('reports recording only while MediaRecorder actually records', async () => {
+    const onRecordingChange = vi.fn()
+    render(<Recorder maxSeconds={40} onComplete={vi.fn()} onRecordingChange={onRecordingChange} />)
+    fireEvent.click(await screen.findByRole('button', { name: /start answering/i }))
+    expect(onRecordingChange.mock.calls).toEqual([[true]])
+    fireEvent.click(screen.getByRole('button', { name: /stop and submit/i }))
+    expect(onRecordingChange.mock.calls).toEqual([[true], [false]])
+  })
+
+  it('clears the recording state on unmount and when capture fails to start', async () => {
+    const onRecordingChange = vi.fn()
+    const view = render(<Recorder maxSeconds={40} onComplete={vi.fn()} onRecordingChange={onRecordingChange} />)
+    fireEvent.click(await screen.findByRole('button', { name: /start answering/i }))
+    view.unmount()
+    expect(onRecordingChange).toHaveBeenLastCalledWith(false)
+
+    const failed = vi.fn()
+    vi.stubGlobal('MediaRecorder', class { constructor() { throw new Error('nope') } })
+    render(<Recorder maxSeconds={40} onComplete={vi.fn()} autoStart onRecordingChange={failed} />)
+    await screen.findByRole('alert')
+    expect(failed).not.toHaveBeenCalledWith(true)
+  })
+
   it('releases devices even if unmounted mid-recording, without calling onComplete', async () => {
     const { unmount, onComplete, button } = await ready()
     fireEvent.click(button)

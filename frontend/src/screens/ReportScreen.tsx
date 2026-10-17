@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { ApiError, getReport } from '../api/client'
 import type { QuestionResult, Report } from '../api/types'
+import ExplanationMap from '../components/ExplanationMap'
 import { PageBrand } from '../components/Presentation'
-import Badge from '../components/Badge'
+import { roundQuestions } from '../visuals/neural/questionVisuals'
 import LoadingScreen from './LoadingScreen'
 
 interface ReportScreenProps {
@@ -67,7 +68,9 @@ export default function ReportScreen({ sessionId, onRestart }: ReportScreenProps
     setAttempt((a) => a + 1)
   }
 
-  if (load.kind === 'loading') return <LoadingScreen message="Grading your answers…" />
+  if (load.kind === 'loading') {
+    return <LoadingScreen message="Grading your answers…" phase="processing" seed={sessionId} questions={roundQuestions(sessionId, 3, 4, false)} />
+  }
 
   if (load.kind === 'failed') {
     return (
@@ -127,6 +130,8 @@ export default function ReportScreen({ sessionId, onRestart }: ReportScreenProps
           <button type="button" className="primary" onClick={retry}>Try grading again</button>
         </section>
       )}
+
+      <ExplanationMap sessionId={sessionId} questions={report.questions} />
 
       <h2>Your three answers</h2>
       {report.questions.map((q) => (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, getQuestion, submitAnswer } from '../api/client'
 import type { AnswerResult, QuestionPublic } from '../api/types'
 import AutoAdvance from '../components/AutoAdvance'
@@ -9,6 +9,8 @@ import { useAppConfig } from '../demoMode'
 import { LookAwayMonitor, createTracker, type LookawayPayload } from '../lookaway'
 import { useVoiceVerification } from '../voice/useVoiceVerification'
 import { createLevelChannel } from '../visuals/audioLevel'
+import { questionId, roundQuestions } from '../visuals/neural/questionVisuals'
+import type { NeuralPhase } from '../visuals/neural/sceneTypes'
 import Recorder from '../Recorder'
 import { AUTO_ADVANCE_MS } from '../timing'
 import { useQuestionSpeech } from '../useQuestionSpeech'
@@ -48,6 +50,7 @@ export default function QuestionScreen({
   const [question, setQuestion] = useState<QuestionPublic | null>(null)
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [attempt, setAttempt] = useState(0)
+  const [recording, setRecording] = useState(false)
   const blobRef = useRef<Blob | null>(null)
   const lookRef = useRef<LookawayPayload | undefined>(undefined)
   const config = useAppConfig()
@@ -116,20 +119,30 @@ export default function QuestionScreen({
 
   const last = index >= total
   const answering = phase.kind === 'answering' && question !== null
+  const listening = answering && recording
+  // Listening follows the recorder's real state, never read-aloud completion alone.
+  const visualPhase: NeuralPhase =
+    phase.kind === 'loading' ? 'preparing'
+      : phase.kind === 'load-failed' || phase.kind === 'upload-failed' ? 'error'
+        : phase.kind === 'uploading' ? 'processing'
+          : phase.kind === 'done' ? 'review'
+            : listening ? 'listening' : 'ready'
+  const hubs = useMemo(() => roundQuestions(sessionId, total, index, phase.kind === 'done'), [sessionId, total, index, phase.kind])
 
   return (
     <main className="assessment-stage active-round">
-      <StageBackdrop levelSource={levels.subscribe} phase={phase.kind === 'uploading' ? 'processing' : phase.kind === 'upload-failed' || phase.kind === 'load-failed' ? 'error' : answering && reveal.done && speech.done ? 'listening' : 'ready'} />
+      <StageBackdrop levelSource={levels.subscribe} phase={visualPhase} seed={sessionId} questions={hubs} activeQuestionId={questionId(sessionId, index)} />
       <div className="round-content">
       <header>
         <p className="eyebrow">
           Question {index} of {total}
         </p>
-        <div className="dots" role="img" aria-label={`Question ${index} of ${total}`}>
+        {/* Progress only: these markers never show correctness during the round. */}
+        <ol className="hub-progress" role="img" aria-label={`Question ${index} of ${total}`}>
           {Array.from({ length: total }, (_, i) => (
-            <span key={i} className={i < index ? 'dot on' : 'dot'} />
+            <li key={i} className={i + 1 === index ? 'active' : i + 1 < index ? 'done' : undefined}>{i + 1}</li>
           ))}
-        </div>
+        </ol>
       </header>
 
       {phase.kind === 'loading' && <p className="muted" role="status">Loading your question…</p>}
@@ -181,8 +194,10 @@ export default function QuestionScreen({
           onLevel={levels.publish}
           onRecordingStream={voice.begin}
           onVideoReady={(video) => void monitor.attach(video)}
+          onRecordingChange={setRecording}
         />
       )}
+      {listening && <p className="neural-state-label">Listening to your explanation…</p>}
       <aside className={`live-reminders${voice.flagged ? ' has-warning' : ''}`} aria-label="Voice verification">
         {voice.flagged && <p className="live-reminder" role="alert">Your voice appears to have changed and has been flagged for your instructor. (Testing notice.)</p>}
         <p className="live-check-status">{voice.status} This comparison does not change your score.</p>
@@ -190,7 +205,7 @@ export default function QuestionScreen({
       {config.debug_borders && <GazeDebugOverlay monitor={monitor} />}
 
       {phase.kind === 'uploading' && (
-        <p className="muted" role="status" aria-busy="true">Transcribing your answer…</p>
+        <p className="muted" role="status" aria-busy="true">Processing your answer…</p>
       )}
 
       {phase.kind === 'upload-failed' && (

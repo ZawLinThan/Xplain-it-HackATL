@@ -18,6 +18,7 @@ import ReportScreen from './screens/ReportScreen'
 import ProfessorScreen from './screens/ProfessorScreen'
 import StartScreen from './screens/StartScreen'
 import type { AppConfig } from './api/types'
+import NeuralPreview from './visuals/neural/NeuralPreview'
 
 /** Pick up where a refreshed tab left off. */
 function init(): FlowState {
@@ -96,6 +97,7 @@ export default function App() {
 
   const params = new URLSearchParams(window.location.search)
   if (params.get('dev') === 'recorder') return <RecorderDemo />
+  if (params.get('dev') === 'neural') return <NeuralPreview />
   if (params.get('view') === 'professor') return <ProfessorScreen />
 
   const screenControl = (
