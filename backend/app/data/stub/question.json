@@ -1,0 +1,6 @@
+{
+  "index": 1,
+  "total": 3,
+  "text": "In count_vowels you stored the vowels in a set. Why did you choose a set instead of a list or a plain string?",
+  "max_seconds": 40
+}

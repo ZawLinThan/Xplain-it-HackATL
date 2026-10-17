@@ -1,75 +1,45 @@
-# React + TypeScript + Vite
+# Explain-It front end
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Vite 8, React 19, TypeScript 6. One screen at a time: start (device check and consent), three
+questions, report. No router; the flow is a reducer in `src/flow.ts`, saved to `sessionStorage`
+so a refresh resumes.
 
-Currently, two official plugins are available:
+## Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+npm install
+cp .env.example .env
+npm run dev          # http://localhost:5173, expects the backend on VITE_API_URL
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+| Variable | Meaning |
+| --- | --- |
+| `VITE_API_URL` | Backend address (default http://localhost:8000) |
+| `VITE_MOCK=1` | Canned data from `src/api/mocks`, no backend. Try `?mock=weak` or `?mock=partial` |
+| `VITE_MOCK_FAST=1` | Makes mock mode instant (used by tests) |
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+npm run gen-types    # regenerate src/api/schema.d.ts from ../docs/openapi.json (uses npx openapi-typescript)
+npm test             # vitest
+npx tsc -b && npx eslint . && npm run build
 ```
+
+Never hand-write API types; run the backend's `make gen-openapi`, then `npm run gen-types`.
+
+## Notes for contributors
+
+- `erasableSyntaxOnly` is on: no enums, namespaces or constructor parameter properties.
+- `src/Recorder.tsx` records the audio track only (the camera is a preview). Its timer uses
+  `performance.now()`, so a throttled background tab cannot run past 40 s.
+- `src/features.ts` lists what is Working, Simulated or Planned. The `Badge` component reads it,
+  and shows Simulated automatically when the backend reports `demo_mode`.
+- `/?dev=recorder` opens a bare recorder page for testing.
+
+## Browser end-to-end check
+
+Run the backend with `DEMO_MODE=1` and the dev server, then drive Chromium with a fake
+microphone and camera (`--use-fake-device-for-media-stream`,
+`--use-fake-ui-for-media-stream`) using Playwright. It walks start, three answers and the report.
+Playwright is not a project dependency; install it separately if you want to repeat the check.

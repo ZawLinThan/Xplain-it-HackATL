@@ -1,0 +1,32 @@
+[
+  {
+    "type": "why",
+    "text": "In count_vowels you stored the vowels in a set. Why did you choose a set instead of a list or a plain string?",
+    "key_ideas": [
+      "Checking membership in a set is fast, about constant time",
+      "Order and duplicates do not matter for a group of vowels",
+      "A list or string would also work for five letters, so the set mainly states the intent"
+    ],
+    "model_answer": "I used a set because I only need to ask whether a letter is a vowel. Membership checks on a set are fast and the order of the vowels does not matter. A list or string would also work for just five letters, but a set shows the intent."
+  },
+  {
+    "type": "trace",
+    "text": "In remove_duplicates, walk me through what seen and result hold after the loop has processed the list 3, 1, 3, 2.",
+    "key_ideas": [
+      "seen ends up holding 3, 1 and 2",
+      "result ends up as the list 3, 1, 2",
+      "The second 3 is skipped because it is already in seen"
+    ],
+    "model_answer": "seen ends up as the set containing 3, 1 and 2, and result is the list 3, 1, 2. When the second 3 arrives the check says it is already in seen, so it is not added to result again."
+  },
+  {
+    "type": "change",
+    "text": "Two of your tests failed when the list contained other lists, like [[1], [1]]. Why did that fail, and how could you change your code to handle it?",
+    "key_ideas": [
+      "Lists are unhashable, so they cannot be added to a set",
+      "The error is raised by the membership check or the add on seen",
+      "A fix is to track seen items in a list, or convert inner lists to tuples"
+    ],
+    "model_answer": "A set needs hashable items and a list is not hashable, so checking or adding it to seen raises a TypeError. I could keep seen as a list, which is slower but works for any item, or convert inner lists to tuples before storing them."
+  }
+]

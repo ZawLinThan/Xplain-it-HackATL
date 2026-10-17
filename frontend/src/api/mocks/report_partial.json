@@ -1,0 +1,35 @@
+{
+  "title": "Intro Python Quiz 3: strings and lists",
+  "problem_score": 0.7333,
+  "explanation_score": null,
+  "final_score": null,
+  "review_flag": null,
+  "partial": true,
+  "weights": {
+    "problem": 0.6,
+    "explanation": 0.4
+  },
+  "questions": [
+    {
+      "index": 1,
+      "text": "In count_vowels you stored the vowels in a set. Why did you choose a set instead of a list or a plain string?",
+      "transcript": "I used a set because I only need to check if a letter is a vowel. Membership checks in a set are fast and the order does not matter, though a list would also work for five letters.",
+      "score": 5,
+      "feedback": "Covers fast membership checks and why order does not matter, and notes a list would also work."
+    },
+    {
+      "index": 2,
+      "text": "In remove_duplicates, walk me through what seen and result hold after the loop has processed the list 3, 1, 3, 2.",
+      "transcript": "After the loop seen holds 3, 1 and 2 and result is 3, 1, 2. The second three is skipped because it is already in seen.",
+      "score": 5,
+      "feedback": "Traces both seen and result correctly and explains the skipped duplicate."
+    },
+    {
+      "index": 3,
+      "text": "Two of your tests failed when the list contained other lists, like [[1], [1]]. Why did that fail, and how could you change your code to handle it?",
+      "transcript": "Lists are not hashable so putting one in a set raises a TypeError. I could keep seen as a list or convert the inner lists to tuples first.",
+      "score": null,
+      "feedback": null
+    }
+  ]
+}

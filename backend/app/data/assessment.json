@@ -1,0 +1,6 @@
+{
+  "title": "Intro Python Quiz 3: strings and lists",
+  "extracted_text": "ASSESSMENT: Intro to Programming, Quiz 3 (strings and lists)\nSubmission from one anonymous student.\n\nPROBLEM 1 (10 points)\nTask: Write count_vowels(text) that returns how many vowels (a, e, i, o, u) appear in text, ignoring case.\n\nStudent answer:\ndef count_vowels(text):\n    vowels = {\"a\", \"e\", \"i\", \"o\", \"u\"}\n    total = 0\n    for ch in text.lower():\n        if ch in vowels:\n            total += 1\n    return total\n\nResult: all 4 tests passed (10 of 10 points).\n\nPROBLEM 2 (20 points)\nTask: Write remove_duplicates(items) that returns a new list with duplicates removed. Keep the first occurrence of each item and keep the original order.\n\nStudent answer:\ndef remove_duplicates(items):\n    seen = set()\n    result = []\n    for item in items:\n        if item not in seen:\n            seen.add(item)\n            result.append(item)\n    return result\n\nResult: 3 of 5 tests passed (12 of 20 points). The two failing tests passed lists that contain other lists, such as [[1], [1]], and the function raised TypeError: unhashable type: 'list'.\n",
+  "problem_points_earned": 22,
+  "problem_points_total": 30
+}

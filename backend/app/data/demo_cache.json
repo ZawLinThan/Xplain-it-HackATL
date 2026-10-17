@@ -1,0 +1,93 @@
+{
+  "_note": "Canned output for DEMO_MODE=1. Simulated: nothing here comes from a live LLM or speech model.",
+  "questions": {
+    "questions": [
+      {
+        "type": "why",
+        "text": "In count_vowels you stored the vowels in a set. Why did you choose a set instead of a list or a plain string?",
+        "expected": {
+          "key_ideas": [
+            "Checking membership in a set is fast, about constant time",
+            "Order and duplicates do not matter for a group of vowels",
+            "A list or string would also work for five letters, so the set mainly states the intent"
+          ],
+          "model_answer": "I used a set because I only need to ask whether a letter is a vowel. Membership checks on a set are fast and the order of the vowels does not matter. A list or string would also work for just five letters, but a set shows the intent."
+        }
+      },
+      {
+        "type": "trace",
+        "text": "In remove_duplicates, walk me through what seen and result hold after the loop has processed the list 3, 1, 3, 2.",
+        "expected": {
+          "key_ideas": [
+            "seen ends up holding 3, 1 and 2",
+            "result ends up as the list 3, 1, 2",
+            "The second 3 is skipped because it is already in seen"
+          ],
+          "model_answer": "seen ends up as the set containing 3, 1 and 2, and result is the list 3, 1, 2. When the second 3 arrives the check says it is already in seen, so it is not added to result again."
+        }
+      },
+      {
+        "type": "change",
+        "text": "Two of your tests failed when the list contained other lists, like [[1], [1]]. Why did that fail, and how could you change your code to handle it?",
+        "expected": {
+          "key_ideas": [
+            "Lists are unhashable, so they cannot be added to a set",
+            "The error is raised by the membership check or the add on seen",
+            "A fix is to track seen items in a list, or convert inner lists to tuples"
+          ],
+          "model_answer": "A set needs hashable items and a list is not hashable, so checking or adding it to seen raises a TypeError. I could keep seen as a list, which is slower but works for any item, or convert inner lists to tuples before storing them."
+        }
+      }
+    ]
+  },
+  "students": {
+    "strong": {
+      "transcripts": [
+        "I used a set because I only need to check if a letter is a vowel. Membership checks in a set are fast and the order does not matter, though a list would also work for five letters.",
+        "After the loop seen holds 3, 1 and 2 and result is 3, 1, 2. The second three is skipped because it is already in seen.",
+        "Lists are not hashable so putting one in a set raises a TypeError. I could keep seen as a list or convert the inner lists to tuples first."
+      ],
+      "grades": [
+        {
+          "index": 1,
+          "score": 5,
+          "feedback": "Covers fast membership checks and why order does not matter, and notes a list would also work."
+        },
+        {
+          "index": 2,
+          "score": 5,
+          "feedback": "Traces both seen and result correctly and explains the skipped duplicate."
+        },
+        {
+          "index": 3,
+          "score": 4,
+          "feedback": "Names unhashable lists and both fixes; does not say where the error is raised."
+        }
+      ]
+    },
+    "weak": {
+      "transcripts": [
+        "I think I just saw it somewhere and it seemed to work.",
+        "Um, seen has the numbers and result also has numbers, I am not sure.",
+        ""
+      ],
+      "grades": [
+        {
+          "index": 1,
+          "score": 1,
+          "feedback": "Right topic but none of the key ideas: fast membership checks and order not mattering."
+        },
+        {
+          "index": 2,
+          "score": 1,
+          "feedback": "Does not say which values each variable holds or why the second 3 is skipped."
+        },
+        {
+          "index": 3,
+          "score": 0,
+          "feedback": "No speech detected."
+        }
+      ]
+    }
+  }
+}

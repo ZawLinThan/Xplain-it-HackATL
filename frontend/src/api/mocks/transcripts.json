@@ -1,0 +1,5 @@
+[
+  "I used a set because I only need to check if a letter is a vowel. Membership checks in a set are fast and the order does not matter, though a list would also work for five letters.",
+  "After the loop seen holds 3, 1 and 2 and result is 3, 1, 2. The second three is skipped because it is already in seen.",
+  "Lists are not hashable so putting one in a set raises a TypeError. I could keep seen as a list or convert the inner lists to tuples first."
+]
