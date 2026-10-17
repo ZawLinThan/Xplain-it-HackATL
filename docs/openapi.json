@@ -34,7 +34,7 @@
           "sessions"
         ],
         "summary": "Create Session",
-        "description": "Start a session and write the three questions.\n\nUses the preloaded sample assessment, or the student's uploaded text files when an\n`upload_id` is given and the files were plain text. The problem score P is always the preset\none in this demo: no code is run.",
+        "description": "Start a session and write the three questions.\n\nUses the preloaded sample assessment, or the student's uploaded file content when an\n`upload_id` is given. The problem score P is always the preset\none in this demo: no code is run.",
         "operationId": "create_session_api_v1_sessions_post",
         "requestBody": {
           "content": {

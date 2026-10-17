@@ -83,7 +83,7 @@ describe('Recorder auto start', () => {
     const view = render(
       <Recorder maxSeconds={40} onComplete={vi.fn()} autoStart hold onStarted={onStarted} onVideoReady={onVideoReady} />,
     )
-    await screen.findByText(/timer starts by itself/i)
+    await screen.findByText(/Recording starts after the question/i)
     expect(screen.queryByRole('button', { name: /start answering/i })).toBeNull()
     expect(FakeRecorder.instances).toHaveLength(0) // held: the question is still being revealed
     expect(onVideoReady).toHaveBeenCalledTimes(1)

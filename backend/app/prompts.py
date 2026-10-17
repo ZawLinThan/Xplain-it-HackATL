@@ -12,6 +12,7 @@ Rules:
 - Ask only about things that actually appear in the text.
 - Each question must be answerable out loud in about {MAX_ANSWER_SECONDS} seconds, in plain words, without reciting syntax.
 - Use one question of each type: "why" (why the student chose something), "trace" (what the variables hold at some point), "change" (what happens in an edge case or how to fix a problem).
+- Ground every question, expected answer and key idea in the uploaded assessment and submitted answers. Do not substitute an unrelated sample quiz. Cover the submitted answer files across the three questions where possible. Correct mistakes in student code rather than treating them as the answer key.
 - For each question give an expected answer made of 2 to 4 short key ideas, plus a short model answer a good student might say.
 - Reply with JSON only, in exactly this shape:
 {{"questions": [{{"type": "why", "text": "...", "expected": {{"key_ideas": ["...", "..."], "model_answer": "..."}}}}]}}"""

@@ -46,7 +46,7 @@ const useOwnFiles = () => fireEvent.click(screen.getByRole('checkbox', { name: /
 const start = () => screen.getByRole('button', { name: 'Start' })
 
 beforeEach(() => {
-  vi.mocked(uploadFiles).mockReset().mockResolvedValue(created(true, 'Your text files will be used to write the questions.'))
+  vi.mocked(uploadFiles).mockReset().mockResolvedValue(created(true, 'Your uploaded files will be used to generate the questions and expected answers.'))
 })
 
 describe('StartScreen files', () => {
@@ -74,29 +74,18 @@ describe('StartScreen files', () => {
     useOwnFiles()
     pick('Assessment questions', file('q.txt'))
     pick('Your answers', file('a.py'))
-    expect(await screen.findByText(/text files will be used/i)).toBeInTheDocument()
+    expect(await screen.findByText(/uploaded files will be used/i)).toBeInTheDocument()
     expect(uploadFiles).toHaveBeenCalledTimes(1)
     await waitFor(() => expect(start()).toBeEnabled())
     fireEvent.click(start())
     expect(onStart).toHaveBeenCalledWith('u1')
   })
 
-  it('says plainly when PDF or Word files will not be read', async () => {
-    vi.mocked(uploadFiles).mockResolvedValue(
-      created(false, 'PDF and Word files are saved but not read in this demo, so the sample quiz is used.'),
-    )
-    await ready()
-    useOwnFiles()
-    pick('Assessment questions', file('q.pdf'))
-    pick('Your answers', file('a.docx'))
-    expect(await screen.findByText(/not read in this demo/i)).toBeInTheDocument()
-  })
-
   it('rejects a wrong type without calling the API', async () => {
     await ready()
     useOwnFiles()
     pick('Assessment questions', file('virus.exe'))
-    expect(await screen.findByRole('alert')).toHaveTextContent(/\.txt, \.md, \.py, \.pdf or \.docx/)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/source-code file/)
     expect(uploadFiles).not.toHaveBeenCalled()
   })
 
@@ -137,13 +126,13 @@ describe('StartScreen files', () => {
 it('accepts multiple answers, appends later selections, and removes one file', async () => {
   await ready()
   useOwnFiles()
-  const a = file('a.py'), b = file('b.py'), c = file('c.py')
+  const a = file('Main.java'), b = file('main.cpp'), c = file('c.py')
   const input = screen.getByLabelText('Your answers')
   expect(input).toHaveAttribute('multiple')
   fireEvent.change(input, { target: { files: [a, b] } })
   pick('Your answers', c)
-  fireEvent.click(screen.getByRole('button', { name: 'Remove b.py' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Remove main.cpp' }))
   pick('Assessment questions', file('q.txt'))
-  await screen.findByText(/text files will be used/i)
+  await screen.findByText(/uploaded files will be used/i)
   expect(vi.mocked(uploadFiles).mock.calls.at(-1)?.[1]).toEqual([a, c])
 })

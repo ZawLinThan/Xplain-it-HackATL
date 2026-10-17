@@ -83,26 +83,9 @@ export function getConfig(): Promise<AppConfig> {
   return request<AppConfig>('/config')
 }
 
-/** Send the two assessment files. The server says whether it will read them or use the sample. */
+/** Send the assessment and every answer file for content-based question generation. */
 export function uploadFiles(questions: File, answers: File[]): Promise<UploadCreated> {
-  if (MOCK) {
-    const text = (f: File) => /\.(txt|md|py)$/i.test(f.name)
-    const textUsed = text(questions) && answers.every(text)
-    return mockCall<UploadCreated>(
-      {
-        upload_id: 'mock-upload',
-        files: [
-          { role: 'questions', name: questions.name, size_bytes: questions.size },
-          ...answers.map((file) => ({ role: 'answers' as const, name: file.name, size_bytes: file.size })),
-        ],
-        text_used: textUsed,
-        note: textUsed
-          ? 'Your text files will be used to write the questions.'
-          : 'PDF and Word files are saved but not read in this demo, so the sample quiz is used.',
-      },
-      500,
-    )
-  }
+  if (MOCK) return Promise.reject(new ApiError(503, 'live_uploads_required', 'Disable frontend mock mode to generate questions from your uploaded files.'))
   const form = new FormData()
   form.append('questions_file', questions)
   answers.forEach((file) => form.append('answers_file', file))

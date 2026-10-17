@@ -1,15 +1,19 @@
-"""Store uploaded assessment files and read them when they are plain text.
+"""Store uploaded assessment files and extract their text for question and expected-answer generation.
 
-Files are only stored and decoded as text. They are never executed, imported or opened by any
+Text, PDF and Word content is extracted as text. They are never executed, imported or opened by any
 other program. The client's filename is never used on disk.
 """
 
+import io
 import logging
 import re
 import uuid
+import zipfile
 from pathlib import Path
+from xml.etree import ElementTree
 
 from fastapi import UploadFile
+from pypdf import PdfReader
 
 from . import config, db
 from .errors import AppError
@@ -18,13 +22,53 @@ from .schemas import UploadCreated, UploadedFile
 
 log = logging.getLogger("vdemo")
 
-TEXT_EXTS = {".txt", ".md", ".py"}
+CODE_EXTS = {'.c', '.js', '.php', '.swift', '.bash', '.mm', '.cc', '.kts', '.kt', '.sql', '.ipynb', '.java', '.rb', '.py', '.ts', '.scss', '.css', '.tsx', '.h', '.hpp', '.cs', '.lua', '.m', '.go', '.html', '.r', '.cxx', '.json', '.hh', '.dart', '.rs', '.scala', '.sh', '.jsx', '.hxx', '.cpp'}
+TEXT_EXTS = {".txt", ".md"} | CODE_EXTS
 BINARY_EXTS = {".pdf", ".docx"}
 ALLOWED_EXTS = TEXT_EXTS | BINARY_EXTS
-PER_FILE_CHARS = 6000
+PER_FILE_CHARS = 60000
+MAX_TOTAL_CHARS = 120000
 
-NOTE_TEXT = "Your text files will be used to write the questions."
-NOTE_SAMPLE = "PDF and Word files are saved but not read in this demo, so the sample quiz is used."
+NOTE_TEXT = "Your uploaded files will be used to generate the questions and expected answers."
+
+
+def extract_text(name: str, ext: str, data: bytes) -> str:
+    try:
+        if ext in TEXT_EXTS:
+            text = data.decode("utf-8-sig")
+        elif ext == ".pdf":
+            reader = PdfReader(io.BytesIO(data))
+            if reader.is_encrypted:
+                raise AppError(422, "unreadable_file", f"{name}: upload an unencrypted PDF.")
+            parts = []
+            length = 0
+            for page in reader.pages:
+                part = page.extract_text() or ""
+                length += len(part)
+                if length > PER_FILE_CHARS:
+                    raise AppError(413, "text_too_large", f"{name}: too much extracted text; split the assessment.")
+                parts.append(part)
+            text = "\n".join(parts)
+        else:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                info = archive.getinfo("word/document.xml")
+                if info.file_size > 8 * 1024 * 1024:
+                    raise AppError(413, "text_too_large", f"{name}: Word document is too large to read.")
+                root = ElementTree.fromstring(archive.read(info))
+            ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+            text = "\n".join(
+                "".join(node.text or "" for node in paragraph.iter(ns + "t"))
+                for paragraph in root.iter(ns + "p")
+            )
+    except AppError:
+        raise
+    except Exception as exc:
+        raise AppError(422, "unreadable_file", f"Could not read {name}. Upload a valid text, PDF or Word document.") from exc
+    if not text.strip():
+        raise AppError(422, "no_readable_text", f"{name} contains no readable text. For scanned documents, use OCR or upload a text version.")
+    if len(text) > PER_FILE_CHARS:
+        raise AppError(413, "text_too_large", f"{name}: too much extracted text; split the assessment.")
+    return text
 
 
 def display_name(raw: str | None) -> str:
@@ -49,7 +93,7 @@ def _check(role: str, upload: UploadFile) -> tuple[str, str, bytes]:
     ext = Path(name).suffix.lower()
     if ext not in ALLOWED_EXTS:
         raise AppError(
-            415, "unsupported_file_type", "Use a .txt, .md, .py, .pdf or .docx file."
+            415, "unsupported_file_type", "Use a source-code file (such as .java, .cpp or .py), or a .txt, .md, .pdf or .docx document."
         )
     data = _read_limited(upload, config.max_upload_bytes())
     if ext == ".pdf" and not data.startswith(b"%PDF"):
@@ -67,26 +111,25 @@ def store_uploads(questions_file: UploadFile, answers_file: list[UploadFile]) ->
     a_name = ", ".join(name for name, _, _ in answers)
     a_ext = ",".join(ext for _, ext, _ in answers)
 
+    q_text = extract_text(q_name, q_ext, q_data)
+    answer_texts = [extract_text(name, ext, data) for name, ext, data in answers]
+    if len(q_text) + sum(map(len, answer_texts)) > MAX_TOTAL_CHARS:
+        raise AppError(413, "text_too_large", "The assessment contains too much text. Upload a smaller assessment.")
+    a_text = "\n\n".join(
+        f"ANSWER FILE {i + 1} ({name}):\n{text}"
+        for i, ((name, _, _), text) in enumerate(zip(answers, answer_texts))
+    )
+    extracted = f"QUESTIONS FILE ({q_name}):\n{q_text}\n\nSTUDENT ANSWERS FILES:\n{a_text}"
+    text_used = True
     upload_id = str(uuid.uuid4())
+    if looks_like_injection(extracted):
+        log.warning("instruction-like text flagged in upload %s", upload_id)
     folder = config.upload_dir() / upload_id
     folder.mkdir(parents=True, exist_ok=True)
     (folder / f"questions{q_ext}").write_bytes(q_data)
     for i, (_, ext, data) in enumerate(answers):
         suffix = "" if len(answers) == 1 else f"_{i + 1}"
         (folder / f"answers{suffix}{ext}").write_bytes(data)
-
-    text_used = q_ext in TEXT_EXTS and all(ext in TEXT_EXTS for _, ext, _ in answers)
-    extracted = ""
-    if text_used:
-        q_text = q_data.decode('utf-8', errors='replace')[:PER_FILE_CHARS]
-        a_text = "\n\n".join(
-            f"ANSWER FILE {i + 1}:\n{data.decode('utf-8', errors='replace')[:PER_FILE_CHARS]}"
-            for i, (_, _, data) in enumerate(answers)
-        )
-        extracted = f"QUESTIONS FILE:\n{q_text}\n\nSTUDENT ANSWERS FILE:\n{a_text}"
-        if looks_like_injection(extracted):
-            # ids only: never log what the file says
-            log.warning("instruction-like text flagged in upload %s", upload_id)
 
     db.create_upload(upload_id, q_name, a_name, q_ext, a_ext, text_used, extracted)
     return UploadCreated(
@@ -96,5 +139,5 @@ def store_uploads(questions_file: UploadFile, answers_file: list[UploadFile]) ->
             *[UploadedFile(role="answers", name=name, size_bytes=len(data)) for name, _, data in answers],
         ],
         text_used=text_used,
-        note=NOTE_TEXT if text_used else NOTE_SAMPLE,
+        note=NOTE_TEXT,
     )

@@ -81,14 +81,17 @@ class GroqProvider(LLMProvider):
             ],
             "temperature": temperature,
             "response_format": {"type": "json_object"},
+            "max_completion_tokens": 2048,
         }
+        if self.model.startswith("openai/gpt-oss-"):
+            body["reasoning_effort"] = "low"
         headers = {"Authorization": f"Bearer {self.api_key}"}
-        for attempt in range(2):  # a single retry on HTTP 429
+        for attempt in range(3):  # allow the per-minute quota to reset between attempts
             try:
                 response = httpx.post(GROQ_URL, json=body, headers=headers, timeout=45.0)
             except httpx.HTTPError as exc:
                 raise LLMError(f"LLM request failed: {type(exc).__name__}") from exc
-            if response.status_code == 429 and attempt == 0:
+            if response.status_code == 429 and attempt < 2:
                 time.sleep(self._retry_delay(response))
                 continue
             if response.status_code != 200:
@@ -101,9 +104,9 @@ class GroqProvider(LLMProvider):
 
     def _retry_delay(self, response: httpx.Response) -> float:
         try:
-            return min(float(response.headers.get("retry-after", "")), 10.0)
+            return max(60.0, min(float(response.headers.get("retry-after", "")) + 1.0, 90.0))
         except ValueError:
-            return self.backoff_seconds
+            return max(self.backoff_seconds, 60.0)
 
 
 class GeminiProvider(LLMProvider):

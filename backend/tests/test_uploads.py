@@ -3,6 +3,8 @@ import logging
 import os
 import time
 
+import pytest
+
 from app import cleanup, db
 from helpers import good_questions
 
@@ -29,13 +31,10 @@ def test_valid_text_pair_is_used(client, llm):
     assert "count_vowels" in sent and sent.startswith("<assessment_text>")
 
 
-def test_pdf_pair_falls_back_to_sample(client, llm):
-    pdf = b"%PDF-1.4 fake"
-    body = post(client, ("q.pdf", pdf), ("a.pdf", pdf)).json()
-    assert body["text_used"] is False and "sample quiz" in body["note"]
-    llm.push(good_questions())
-    created = client.post("/api/v1/sessions", json={"upload_id": body["upload_id"]}).json()
-    assert created["used_upload"] is False
+def test_invalid_pdf_is_rejected_instead_of_using_sample(client):
+    response = post(client, ("q.pdf", b"%PDF-1.4 fake"))
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "unreadable_file"
 
 
 def test_oversize_is_413(client, monkeypatch):
@@ -132,3 +131,99 @@ def test_invalid_second_answer_rejects_entire_upload(client, tmp_path):
     ])
     assert response.status_code == 415
     assert not list((tmp_path / "uploads").glob("*"))
+
+
+def make_pdf(text):
+    from pypdf import PdfWriter
+    from pypdf.generic import DictionaryObject, NameObject, DecodedStreamObject
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=612, height=792)
+    font = DictionaryObject({NameObject("/Type"): NameObject("/Font"), NameObject("/Subtype"): NameObject("/Type1"), NameObject("/BaseFont"): NameObject("/Helvetica")})
+    page[NameObject("/Resources")] = DictionaryObject({NameObject("/Font"): DictionaryObject({NameObject("/F1"): writer._add_object(font)})})
+    stream = DecodedStreamObject()
+    stream.set_data(f"BT /F1 12 Tf 50 700 Td ({text}) Tj ET".encode())
+    page[NameObject("/Contents")] = writer._add_object(stream)
+    output = io.BytesIO()
+    writer.write(output)
+    return output.getvalue()
+
+
+def make_docx(text):
+    import zipfile
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w") as archive:
+        archive.writestr("word/document.xml", f'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>{text}</w:t></w:r></w:p></w:body></w:document>')
+    return output.getvalue()
+
+
+def test_pdf_and_word_content_generates_saved_questions_and_expected_answers(client, llm):
+    response = post(client, ("questions.pdf", make_pdf("Explain the inventory lookup")), ("answers.docx", make_docx("inventory_unique_answer")))
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["text_used"] is True
+    expected = good_questions()
+    expected["questions"][0]["text"] = "Why does your inventory lookup use a dictionary?"
+    expected["questions"][0]["expected"]["model_answer"] = "A dictionary indexes inventory items by key."
+    llm.push(expected)
+    response = client.post("/api/v1/sessions", json={"upload_id": body["upload_id"]})
+    assert response.status_code == 201, response.text
+    assert response.json()["used_upload"] is True
+    sent = llm.calls[-1][1]
+    assert "inventory lookup" in sent and "inventory_unique_answer" in sent
+    assert "count_vowels" not in sent and "remove_duplicates" not in sent
+    saved = db.list_questions(response.json()["session_id"])
+    assert saved[0]["text"] == expected["questions"][0]["text"]
+    assert saved[0]["model_answer"] == expected["questions"][0]["expected"]["model_answer"]
+
+
+def test_blank_pdf_and_whitespace_text_are_rejected(client):
+    from pypdf import PdfWriter
+    output = io.BytesIO()
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    writer.write(output)
+    assert post(client, ("q.pdf", output.getvalue())).json()["error"]["code"] == "no_readable_text"
+    assert post(client, ("q.txt", b"   ")).json()["error"]["code"] == "no_readable_text"
+
+
+def test_generation_failure_never_substitutes_sample_for_upload(client, llm):
+    from app.llm import LLMError
+    body = post(client).json()
+    llm.push(LLMError("provider unavailable"))
+    response = client.post("/api/v1/sessions", json={"upload_id": body["upload_id"]})
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "question_generation_unavailable"
+    with db.connect() as conn:
+        assert conn.execute("SELECT count(*) FROM sessions").fetchone()[0] == 0
+
+
+def test_upload_generation_rejects_demo_mode(client, monkeypatch):
+    body = post(client).json()
+    monkeypatch.setenv("DEMO_MODE", "1")
+    response = client.post("/api/v1/sessions", json={"upload_id": body["upload_id"]})
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "live_generation_required"
+
+
+def test_long_upload_is_not_silently_truncated(client):
+    response = post(client, ("q.txt", b"x" * 60001))
+    assert response.status_code == 413
+    assert response.json()["error"]["code"] == "text_too_large"
+
+
+@pytest.mark.parametrize("extension", [".java", ".cpp", ".c", ".hpp", ".cs", ".js", ".ts", ".go", ".rs", ".kt", ".swift", ".rb", ".php", ".JAVA", ".CPP"])
+def test_source_code_files_are_used_for_generation(client, llm, extension):
+    marker = b"unique_uploaded_source_implementation"
+    response = post(client, a=("solution" + extension, marker))
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["text_used"] is True
+    llm.push(good_questions())
+    created = client.post("/api/v1/sessions", json={"upload_id": body["upload_id"]})
+    assert created.status_code == 201
+    assert marker.decode() in llm.calls[-1][1]
+
+
+def test_binary_disguised_as_source_code_is_rejected(client):
+    response = post(client, a=("solution.java", b"binary\x00content"))
+    assert response.status_code == 415

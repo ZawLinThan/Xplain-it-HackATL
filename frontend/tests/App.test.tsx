@@ -22,6 +22,12 @@ vi.mock('../src/Recorder', () => ({
 }))
 
 beforeEach(() => {
+  Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
+    getDisplayMedia: vi.fn().mockResolvedValue({
+      getVideoTracks: () => [{ getSettings: () => ({ displaySurface: 'monitor' }), addEventListener: vi.fn() }],
+      getTracks: () => [{ stop: vi.fn() }],
+    }),
+  } })
   vi.resetModules()
   vi.stubEnv('VITE_MOCK', '1')
   vi.stubEnv('VITE_MOCK_FAST', '1')
@@ -39,6 +45,8 @@ async function renderApp() {
 }
 
 async function startQuiz() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Share entire screen' }))
+  await screen.findByText('Entire screen sharing is active.')
   fireEvent.click(await screen.findByRole('button', { name: 'Check devices' }))
   await screen.findByText(/microphone ready/i)
   fireEvent.click(screen.getByRole('checkbox', { name: /I agree/ }))
@@ -54,6 +62,9 @@ describe('App flow (mock mode)', () => {
     await screen.findByText(/microphone ready/i)
     expect(start).toBeDisabled()
     fireEvent.click(screen.getByRole('checkbox', { name: /I agree/ }))
+    expect(start).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Share entire screen' }))
+    await screen.findByText('Entire screen sharing is active.')
     expect(start).toBeEnabled()
   })
 
@@ -81,6 +92,7 @@ describe('App flow (mock mode)', () => {
       JSON.stringify({ sessionId: 's1', title: 'Quiz', total: 3, transcripts: { 1: 'a', 2: 'b' } }),
     )
     await renderApp()
+    fireEvent.click(await screen.findByRole('button', { name: 'Share entire screen' }))
     expect(await screen.findByText('Question 3 of 3')).toBeInTheDocument()
   })
 

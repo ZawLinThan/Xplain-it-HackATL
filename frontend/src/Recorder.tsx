@@ -216,7 +216,7 @@ export default function Recorder({
 
       {state === 'idle' && autoStart && !startFailed && (
         <p className="muted">
-          {hold ? 'The timer starts by itself when the whole question is on screen.' : 'Starting…'}
+          {hold ? 'Recording starts after the question is displayed and read aloud.' : 'Starting…'}
         </p>
       )}
       {state === 'idle' && (!autoStart || startFailed) && (

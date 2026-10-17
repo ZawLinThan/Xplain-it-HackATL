@@ -56,7 +56,7 @@ beforeEach(() => {
   vi.mocked(submitAnswer).mockReset().mockResolvedValue({ ...answered })
 })
 
-afterEach(() => vi.useRealTimers())
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals() })
 
 describe('QuestionScreen flow', () => {
   it('reveals the question word by word, and only then lets the timer start by itself', async () => {
@@ -208,4 +208,19 @@ describe('QuestionScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByRole('heading', { name: question.text })).toBeInTheDocument()
   })
+})
+
+
+it('keeps the recorder on hold until the spoken question finishes', async () => {
+  class Utterance { onend: (() => void) | null = null }
+  const speak = vi.fn()
+  vi.stubGlobal('SpeechSynthesisUtterance', Utterance)
+  vi.stubGlobal('speechSynthesis', { speak, cancel: vi.fn() })
+  setup()
+  const recorder = await screen.findByRole('button', { name: 'finish recording' })
+  await waitFor(() => expect(document.querySelectorAll('.word.on')).toHaveLength(6), { timeout: 4000 })
+  expect(recorder).toHaveAttribute('data-hold', 'true')
+  expect(speak).toHaveBeenCalledTimes(1)
+  act(() => speak.mock.calls[0][0].onend())
+  expect(recorder).toHaveAttribute('data-hold', 'false')
 })

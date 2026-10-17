@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { ApiError, uploadFiles } from '../api/client'
 import { MediaDenied, openMedia, stopStream } from '../api/media'
@@ -9,6 +10,8 @@ import { preloadTracker } from '../lookaway'
 
 interface StartScreenProps {
   /** Message from a failed attempt (backend down, expired session, ...). */
+  screenReady?: boolean
+  screenControl?: ReactNode
   error: string | null
   /** uploadId is set when the student's own files were uploaded; otherwise the sample quiz is used. */
   onStart: (uploadId?: string) => void
@@ -21,7 +24,7 @@ type Upload =
   | { kind: 'ready'; uploadId: string; note: string }
   | { kind: 'failed'; message: string }
 
-export default function StartScreen({ error, onStart }: StartScreenProps) {
+export default function StartScreen({ error, onStart, screenReady = true, screenControl }: StartScreenProps) {
   const [check, setCheck] = useState<Check>('idle')
   const [hasCamera, setHasCamera] = useState(false)
   const [checkError, setCheckError] = useState('')
@@ -96,7 +99,7 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
   }
 
   const filesReady = useSample || upload.kind === 'ready'
-  const ready = check === 'ok' && consent && filesReady
+  const ready = check === 'ok' && consent && filesReady && screenReady
 
   return (
     <main className="screen">
@@ -130,8 +133,8 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
         {!useSample && (
           <div className="uploads">
             <p>
-              Upload your quiz questions and the answers you gave. Text files are read to write your
-              questions. <Badge feature="fileUpload" withLabel />
+              Upload your quiz questions and the answers you gave. The contents of every file are used to generate your
+              questions and expected answers. <Badge feature="fileUpload" withLabel />
             </p>
             <FileDrop
               label="Assessment questions"
@@ -167,7 +170,6 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
             estimates which way your head and eyes point and keeps a count of how often you look away
             from the screen. Nothing from the camera leaves your device except that count and its
             times. It never changes your score. Your instructor may look at it.{' '}
-            <Badge feature="lookAway" />
           </li>
           <li>Your instructor sees your transcript and score. A low score is a reason to talk to you, not proof of anything.</li>
         </ul>
@@ -210,6 +212,8 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
         )}
       </section>
 
+      {screenControl}
+
       <section className="card" aria-labelledby="consent-title">
         <h2 id="consent-title">Consent</h2>
         <label className="check">
@@ -240,7 +244,9 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
         </button>
         {!ready && (
           <p className="muted">
-            {check !== 'ok'
+            {!screenReady
+              ? 'Share your entire screen before starting.'
+              : check !== 'ok'
               ? 'Check your devices first.'
               : !consent
                 ? 'Tick the consent box to continue.'

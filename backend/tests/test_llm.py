@@ -60,12 +60,14 @@ def _ok(content):
 
 
 def test_groq_retries_once_on_429(monkeypatch):
+    monkeypatch.setattr(llm_module.time, "sleep", lambda _: None)
     responses = [_Resp(429, headers={"retry-after": "0"}), _ok('{"n": 5}')]
     monkeypatch.setattr(httpx, "post", lambda *a, **k: responses.pop(0))
     assert GroqProvider("key", backoff_seconds=0).complete_json("s", "u", Out).n == 5
 
 
-def test_groq_gives_up_after_second_429(monkeypatch):
+def test_groq_gives_up_after_repeated_429(monkeypatch):
+    monkeypatch.setattr(llm_module.time, "sleep", lambda _: None)
     monkeypatch.setattr(httpx, "post", lambda *a, **k: _Resp(429, headers={"retry-after": "0"}))
     with pytest.raises(LLMError):
         GroqProvider("key", backoff_seconds=0).complete_json("s", "u", Out)
@@ -105,3 +107,9 @@ def test_no_provider_raises():
     monkeypatch_free = llm_module.NoProvider()
     with pytest.raises(LLMError):
         monkeypatch_free.complete_json("s", "u", Out)
+
+
+def test_retry_wait_honors_provider_reset_window():
+    p = GroqProvider('key')
+    assert p._retry_delay(_Resp(429, headers={'retry-after': '45'})) == 60
+    assert p._retry_delay(_Resp(429)) == 60

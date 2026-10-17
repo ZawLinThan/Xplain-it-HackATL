@@ -18,7 +18,7 @@ export default function LoadingScreen({ message = 'Writing your three questionsâ
       <h1 className="h2">{message}</h1>
       <p className="muted" role="status">
         {slow
-          ? 'This is taking longer than usual. The free AI service may be busy. Thanks for waiting.'
+          ? 'Large uploads are read in sections. This can take a few minutes while the AI service processes them.'
           : 'An AI reads your answers and picks what to ask.'}
       </p>
     </main>

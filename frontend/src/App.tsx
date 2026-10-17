@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useState } from 'react'
 import { ApiError, createSession, getConfig } from './api/client'
 import { AppConfigContext, DEFAULT_CONFIG, DemoModeContext } from './demoMode'
 import Recorder from './Recorder'
+import { useScreenShare } from './useScreenShare'
 import {
   clearSession,
   initialState,
@@ -41,6 +42,7 @@ function RecorderDemo() {
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, init)
+  const sharing = useScreenShare(state.screen !== 'report')
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG)
 
   // Best effort: if this fails the badges just show the live-build labels.
@@ -95,14 +97,29 @@ export default function App() {
   if (params.get('dev') === 'recorder') return <RecorderDemo />
   if (params.get('view') === 'professor') return <ProfessorScreen />
 
+  const screenControl = (
+    <section className="card" aria-labelledby="screen-share-title">
+      <h2 id="screen-share-title">Share your entire screen</h2>
+      <p>Select Entire Screen in the browser dialog before starting. Keep sharing throughout the assessment.</p>
+      <p className="muted">The screen stream stays in this browser. It is not recorded or uploaded.</p>
+      {sharing.active ? <p className="ok">Entire screen sharing is active.</p> : (
+        <button type="button" disabled={sharing.requesting} onClick={() => void sharing.request()}>
+          {sharing.requesting ? 'Waiting for screen sharing…' : 'Share entire screen'}
+        </button>
+      )}
+      {sharing.error && <p role="alert" className="error">{sharing.error}</p>}
+    </section>
+  )
+
   return (
     <AppConfigContext.Provider value={config}>
     <DemoModeContext.Provider value={config.demo_mode}>
       <a className="skip" href="#main">Skip to content</a>
       <div id="main">
-        {state.screen === 'start' && <StartScreen error={state.error} onStart={begin} />}
+        {state.screen === 'start' && <StartScreen screenReady={sharing.active} screenControl={screenControl} error={state.error} onStart={begin} />}
         {state.screen === 'loading' && <LoadingScreen />}
-        {state.screen === 'question' && state.sessionId && (
+        {state.screen === 'question' && !sharing.active && <main className="screen">{screenControl}</main>}
+        {state.screen === 'question' && sharing.active && state.sessionId && (
           <QuestionScreen
             key={state.index}
             sessionId={state.sessionId}

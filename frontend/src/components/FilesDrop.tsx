@@ -23,7 +23,7 @@ export default function FilesDrop({ label, files, error, onChange, onReject }: P
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); add(Array.from(e.dataTransfer.files)) }}>
       <label htmlFor={id} className="label">{label}</label>
-      <p className="muted">Drop files here or choose multiple files. {ALLOWED_EXTENSIONS.join(' ')}, up to 2 MB each.</p>
+      <p className="muted">Drop files here or choose multiple files. Source code (including .java and .cpp), text, PDF or Word; up to 2 MB each.</p>
       {files.map((file, index) => (
         <p key={index}>
           <span className="filename">{file.name}</span> <span className="muted">· {formatSize(file.size)}</span>{' '}

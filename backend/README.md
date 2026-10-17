@@ -13,7 +13,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-dev.txt
 cp .env.example .env
-python -m uvicorn app.main:app --reload --env-file .env
+python -m uvicorn app.main:app --reload --reload-dir app --env-file .env
 ```
 
 On Windows, activate with `.venv\Scripts\activate`.
@@ -48,7 +48,7 @@ See `.env.example` for the full list.
 All under `/api/v1`. Errors look like `{"error": {"code": "...", "message": "..."}}`.
 
 - `GET /health`, `GET /config` (`demo_mode`, `gaze_tracking`, `debug_borders`)
-- `POST /uploads` (multipart `questions_file` and `answers_file`; .txt .md .py are read, .pdf .docx are stored only)
+- `POST /uploads` (multipart `questions_file` and one or more repeated `answers_file` parts; text is extracted from source-code files (including .java, .cpp, .c, .cs, .js, .ts, .go and .rs), .txt, .md, .pdf and .docx)
 - `POST /sessions` (optional JSON `{upload_id}`)
 - `GET /sessions/{id}/questions/{n}` (n is 1 to 3; the first call starts that question's clock)
 - `POST /sessions/{id}/questions/{n}/answer` (multipart: `audio`, `consent`, optional `video`)
@@ -96,3 +96,7 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 This folder belongs to the Git repository in the parent directory. Virtual environments, caches,
 databases, audio and local `.env` files are ignored.
+
+Uploaded assessments generate their questions, key ideas and expected answers from all uploaded file contents. Unreadable or scanned documents return an error; OCR is not provided. Extracted content is limited to 60,000 characters per file and 120,000 total, without silent truncation. Uploaded sessions require live generation: demo mode and generation failures return an error instead of substituting the sample quiz. The problem score remains preset; uploaded code is not executed.
+
+Large assessments are read in bounded sections and summarized before generating questions. All sections are processed; summaries are cached so retries can reuse completed work. Provider rate limits may make large uploads take several minutes.

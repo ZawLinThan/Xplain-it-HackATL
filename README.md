@@ -19,7 +19,7 @@ cd backend
 python3 -m venv .venv && source .venv/bin/activate
 python -m pip install -r requirements-dev.txt
 cp .env.example .env            # then set DEMO_MODE=1 in .env
-python -m uvicorn app.main:app --reload --env-file .env
+python -m uvicorn app.main:app --reload --reload-dir app --env-file .env
 
 # 2. frontend
 cd frontend

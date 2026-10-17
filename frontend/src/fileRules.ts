@@ -1,5 +1,6 @@
 /** The same rules as the server, applied early so a mistake is caught before an upload. */
-export const ALLOWED_EXTENSIONS = ['.txt', '.md', '.py', '.pdf', '.docx'] as const
+export const CODE_EXTENSIONS = ['.py', '.java', '.c', '.h', '.cpp', '.cc', '.cxx', '.hpp', '.hh', '.hxx', '.cs', '.js', '.jsx', '.ts', '.tsx', '.go', '.rs', '.kt', '.kts', '.swift', '.rb', '.php', '.scala', '.sql', '.html', '.css', '.scss', '.sh', '.bash', '.r', '.lua', '.dart', '.m', '.mm', '.ipynb', '.json'] as const
+export const ALLOWED_EXTENSIONS = ['.txt', '.md', ...CODE_EXTENSIONS, '.pdf', '.docx'] as const
 export const MAX_FILE_BYTES = 2 * 1024 * 1024
 
 export function formatSize(bytes: number): string {
@@ -13,7 +14,7 @@ export function validateFile(file: { name: string; size: number }): string | nul
   const dot = file.name.lastIndexOf('.')
   const ext = dot >= 0 ? file.name.slice(dot).toLowerCase() : ''
   if (!(ALLOWED_EXTENSIONS as readonly string[]).includes(ext)) {
-    return 'Use a .txt, .md, .py, .pdf or .docx file.'
+    return 'Use a source-code file (such as .java, .cpp or .py), or a .txt, .md, .pdf or .docx document.'
   }
   if (file.size === 0) return 'That file is empty.'
   if (file.size > MAX_FILE_BYTES) return `That file is too large. The limit is ${formatSize(MAX_FILE_BYTES)}.`

@@ -8,6 +8,7 @@ import { useAppConfig } from '../demoMode'
 import { LookAwayMonitor, createTracker, type LookawayPayload } from '../lookaway'
 import Recorder from '../Recorder'
 import { AUTO_ADVANCE_MS } from '../timing'
+import { useQuestionSpeech } from '../useQuestionSpeech'
 import { useWordReveal } from '../useWordReveal'
 
 interface QuestionScreenProps {
@@ -46,6 +47,7 @@ export default function QuestionScreen({
   const lookRef = useRef<LookawayPayload | undefined>(undefined)
   const config = useAppConfig()
   const [monitor] = useState(() => new LookAwayMonitor(createTracker(config.gaze_tracking)))
+  const speech = useQuestionSpeech(question?.text ?? null)
   const reveal = useWordReveal(question?.text ?? null)
 
   useEffect(() => () => monitor.dispose(), [monitor])
@@ -153,12 +155,21 @@ export default function QuestionScreen({
         </section>
       )}
 
+      {answering && !speech.done && (
+        <div>
+          <p role="status">{speech.error || 'Reading the question aloud… Recording will begin afterward.'}</p>
+          {speech.error && <button type="button" onClick={speech.retry}>Read question aloud</button>}
+          <button type="button" onClick={speech.skip}>Continue without speech</button>
+        </div>
+      )}
+      {answering && !speech.supported && <p className="muted">Read-aloud is unavailable in this browser. Read the question on screen.</p>}
+
       {answering && (
         <Recorder
           maxSeconds={question.max_seconds}
           onComplete={handleComplete}
           autoStart
-          hold={!reveal.done}
+          hold={!reveal.done || !speech.done}
           onStarted={() => monitor.beginCounting()}
           onVideoReady={(video) => void monitor.attach(video)}
         />

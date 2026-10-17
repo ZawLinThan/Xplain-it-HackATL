@@ -37,8 +37,8 @@ export interface paths {
          * Create Session
          * @description Start a session and write the three questions.
          *
-         *     Uses the preloaded sample assessment, or the student's uploaded text files when an
-         *     `upload_id` is given and the files were plain text. The problem score P is always the preset
+         *     Uses the preloaded sample assessment, or the student's uploaded file content when an
+         *     `upload_id` is given. The problem score P is always the preset
          *     one in this demo: no code is run.
          */
         post: operations["create_session_api_v1_sessions_post"];

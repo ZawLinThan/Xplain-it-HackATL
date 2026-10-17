@@ -5,6 +5,7 @@ import logging
 
 from . import config, db, scoring
 from .errors import AppError
+from .assessment_context import prepare_assessment
 from .llm import LLMError, LLMProvider
 from .prompts import build_grading_prompt, build_question_prompt
 from .schemas import (
@@ -36,12 +37,18 @@ def load_bank() -> list[dict]:
 # ------------------------------------------------------------------- questions
 
 
-def make_questions(llm: LLMProvider, extracted_text: str) -> tuple[list[dict], str]:
-    """Ask the LLM for three questions. Falls back to the stored bank so the demo never stalls."""
-    system, user = build_question_prompt(extracted_text)
+def make_questions(llm: LLMProvider, extracted_text: str, *, allow_fallback: bool = True) -> tuple[list[dict], str]:
+    """Generate questions and expected answers. Only sample sessions may use the stored bank."""
+    if not allow_fallback and (config.demo_mode() or llm.name in {"demo", "cached-demo"}):
+        raise AppError(503, "live_generation_required", "Disable demo mode to generate questions from uploaded files.")
     try:
+        context = prepare_assessment(llm, extracted_text)
+        system, user = build_question_prompt(context)
         generated = llm.complete_json(system, user, QuestionGen, temperature=0.2)
     except LLMError as exc:
+        if not allow_fallback:
+            log.warning("uploaded assessment generation failed: %s", exc)
+            raise AppError(503, "question_generation_unavailable", "Could not generate questions from your files. Please try again.") from exc
         log.warning("question generation failed (%s); using the stored question bank", exc)
         return load_bank()[:TOTAL_QUESTIONS], "bank"
     rows = [

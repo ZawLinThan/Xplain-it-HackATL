@@ -71,19 +71,22 @@ def create_session(
 ) -> SessionCreated:
     """Start a session and write the three questions.
 
-    Uses the preloaded sample assessment, or the student's uploaded text files when an
-    `upload_id` is given and the files were plain text. The problem score P is always the preset
+    Uses the preloaded sample assessment, or the student's uploaded file content when an
+    `upload_id` is given. The problem score P is always the preset
     one in this demo: no code is run.
     """
-    assessment = service.load_assessment()
-    title, text, used_upload = assessment["title"], assessment["extracted_text"], False
-    if body is not None and body.upload_id:
+    used_upload = bool(body is not None and body.upload_id)
+    if used_upload:
         upload = db.get_upload(body.upload_id)
         if upload is None:
             raise AppError(404, "upload_not_found", "No such upload.")
-        if upload["text_used"]:
-            title, text, used_upload = "Your uploaded assessment", upload["extracted_text"], True
-    questions, source = service.make_questions(llm, text)
+        if not upload["text_used"] or not upload["extracted_text"].strip():
+            raise AppError(422, "upload_requires_text", "Please upload your files again so their content can be read.")
+        title, text = "Your uploaded assessment", upload["extracted_text"]
+    else:
+        assessment = service.load_assessment()
+        title, text = assessment["title"], assessment["extracted_text"]
+    questions, source = service.make_questions(llm, text, allow_fallback=not used_upload)
     session_id = db.create_session(title, questions)
     log.info("session %s created with %s questions", session_id, source)
     return SessionCreated(session_id=session_id, title=title, used_upload=used_upload)
