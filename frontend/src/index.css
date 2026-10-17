@@ -214,3 +214,71 @@ details[open] summary { margin-bottom: 0.6rem; }
   .card { break-inside: avoid; }
   details:not([open]) > *:not(summary) { display: block; }
 }
+
+/* ---- question reveal, auto advance, uploads, instructor view ---- */
+.word {
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+.word.on {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .word {
+    transition: none;
+  }
+}
+.advance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+.dropzone {
+  border: 2px dashed var(--line, #cfd5dc);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+}
+.dropzone.over {
+  border-color: var(--accent, #1f6f5c);
+  background: rgba(31, 111, 92, 0.06);
+}
+.dropzone.disabled {
+  opacity: 0.6;
+}
+.filename {
+  font-weight: 600;
+  word-break: break-all;
+}
+.screen.wide {
+  max-width: 60rem;
+}
+table.sessions {
+  width: 100%;
+  border-collapse: collapse;
+}
+table.sessions th,
+table.sessions td {
+  text-align: left;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--line, #cfd5dc);
+  vertical-align: top;
+}
+.timeline {
+  position: relative;
+  height: 14px;
+  margin: 0.5rem 0;
+  border-radius: 7px;
+  background: var(--line, #e3e7ec);
+}
+.timeline .tick {
+  position: absolute;
+  top: -3px;
+  width: 4px;
+  height: 20px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: #b3261e;
+}

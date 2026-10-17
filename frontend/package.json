@@ -9,9 +9,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "gen-types": "npx --yes openapi-typescript@7 ../docs/openapi.json -o src/api/schema.d.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "setup-gaze": "sh scripts/setup-gaze.sh"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "1.1.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

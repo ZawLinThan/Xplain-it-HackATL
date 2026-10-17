@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from app import deps
 from app.main import app
-from helpers import answer
+from helpers import PROF, answer
 
 
 @pytest.fixture
@@ -21,7 +21,9 @@ def run(client, student, monkeypatch):
     sid = client.post("/api/v1/sessions").json()["session_id"]
     for n in (1, 2, 3):
         assert answer(client, sid, n).status_code == 201
-    return client.get(f"/api/v1/sessions/{sid}/report").json()
+    report = client.get(f"/api/v1/sessions/{sid}/report").json()
+    flag = client.get(f"/api/v1/professor/sessions/{sid}", headers=PROF).json()["review_flag"]
+    return {**report, "review_flag": flag}
 
 
 def test_strong_student(demo_client, monkeypatch):

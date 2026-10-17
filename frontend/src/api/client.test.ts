@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, createSession, getQuestion, getReport, submitAnswer } from './client'
+import {
+  ApiError,
+  createSession,
+  getProfessorSession,
+  getProfessorSessions,
+  getQuestion,
+  getReport,
+  submitAnswer,
+  uploadFiles,
+} from './client'
 
 function respond(status: number, body: unknown) {
   return Promise.resolve(new Response(JSON.stringify(body), { status }))
@@ -64,5 +73,51 @@ describe('api client', () => {
     expect(form.get('consent')).toBe('true')
     expect(form.get('audio')).toBeInstanceOf(Blob)
     expect(form.has('seconds_used')).toBe(false) // the server measures time itself
+  })
+
+  it('uploads both files as multipart parts named for the API', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+      respond(201, { upload_id: 'u1', files: [], text_used: true, note: 'ok' }),
+    )
+    const q = new File(['q'], 'q.txt')
+    const a = new File(['a'], 'a.py')
+    expect((await uploadFiles(q, a)).upload_id).toBe('u1')
+    expect(String(spy.mock.calls[0][0])).toBe('http://localhost:8000/api/v1/uploads')
+    const form = spy.mock.calls[0][1]?.body as FormData
+    expect((form.get('questions_file') as File).name).toBe('q.txt')
+    expect((form.get('answers_file') as File).name).toBe('a.py')
+  })
+
+  it('starts a session from an upload with a small JSON body, and from the sample with none', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+      respond(201, { session_id: 'abc', title: 'T', total_questions: 3, max_answer_seconds: 40, used_upload: true }),
+    )
+    await createSession('u1')
+    expect(spy.mock.calls[0][1]?.body).toBe(JSON.stringify({ upload_id: 'u1' }))
+    await createSession()
+    expect(spy.mock.calls[1][1]?.body).toBeUndefined()
+  })
+
+  it('sends look-away counts as one JSON form field next to the audio', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+      respond(201, { transcript: 'hi', seconds_used: 1, late: false }),
+    )
+    await submitAnswer('s1', 2, new Blob(['x']), { tracked: true, events: [{ t_ms: 3000, side: 'left' }] })
+    const form = spy.mock.calls[0][1]?.body as FormData
+    expect(JSON.parse(String(form.get('lookaway')))).toEqual({ tracked: true, events: [{ t_ms: 3000, side: 'left' }] })
+    expect(form.get('audio')).toBeInstanceOf(Blob)
+    await submitAnswer('s1', 3, new Blob(['x']))
+    expect((spy.mock.calls[1][1]?.body as FormData).has('lookaway')).toBe(false)
+  })
+
+  it('sends the instructor token in a header, and maps a 401', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+      respond(200, { sessions: [], lookaway_threshold: 4 }),
+    )
+    await getProfessorSessions('tok')
+    expect(spy.mock.calls[0][1]?.headers).toEqual({ 'X-Professor-Token': 'tok' })
+    expect(String(spy.mock.calls[0][0])).toBe('http://localhost:8000/api/v1/professor/sessions')
+    spy.mockImplementation(() => respond(401, { error: { code: 'unauthorized', message: 'Nope.' } }))
+    await expect(getProfessorSession('bad', 's1')).rejects.toMatchObject({ status: 401, code: 'unauthorized' })
   })
 })

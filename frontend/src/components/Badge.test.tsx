@@ -23,7 +23,7 @@ describe('Badge', () => {
   it('never upgrades something that is only planned', () => {
     render(
       <DemoModeContext.Provider value={true}>
-        <Badge feature="fileUpload" />
+        <Badge feature="typedAnswers" />
       </DemoModeContext.Provider>,
     )
     expect(screen.getByText('Planned')).toBeInTheDocument()

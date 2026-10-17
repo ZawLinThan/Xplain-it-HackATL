@@ -1,0 +1,134 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiError, uploadFiles } from '../api/client'
+import StartScreen from './StartScreen'
+
+vi.mock('../api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/client')>()
+  return { ...actual, uploadFiles: vi.fn() }
+})
+vi.mock('../api/media', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/media')>()
+  const track = { kind: 'audio', stop: vi.fn() }
+  return {
+    ...actual,
+    openMedia: vi.fn().mockResolvedValue({
+      stream: { getTracks: () => [track], getAudioTracks: () => [track], getVideoTracks: () => [] },
+      hasVideo: false,
+    }),
+  }
+})
+vi.mock('../lookaway', () => ({ preloadTracker: vi.fn() }))
+
+const created = (text_used: boolean, note: string) => ({
+  upload_id: 'u1',
+  files: [],
+  text_used,
+  note,
+})
+
+function file(name: string, size = 20) {
+  return new File([new Uint8Array(size)], name)
+}
+function pick(label: string, f: File) {
+  fireEvent.change(screen.getByLabelText(label), { target: { files: [f] } })
+}
+
+async function ready() {
+  const onStart = vi.fn()
+  render(<StartScreen error={null} onStart={onStart} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Check devices' }))
+  await screen.findByText(/microphone ready/i)
+  fireEvent.click(screen.getByRole('checkbox', { name: /I agree/ }))
+  return onStart
+}
+const useOwnFiles = () => fireEvent.click(screen.getByRole('checkbox', { name: /sample quiz/i }))
+const start = () => screen.getByRole('button', { name: 'Start' })
+
+beforeEach(() => {
+  vi.mocked(uploadFiles).mockReset().mockResolvedValue(created(true, 'Your text files will be used to write the questions.'))
+})
+
+describe('StartScreen files', () => {
+  it('works with no files: the sample quiz is on by default', async () => {
+    const onStart = await ready()
+    expect(screen.getByRole('checkbox', { name: /sample quiz/i })).toBeChecked()
+    expect(start()).toBeEnabled()
+    fireEvent.click(start())
+    expect(onStart).toHaveBeenCalledWith(undefined)
+    expect(uploadFiles).not.toHaveBeenCalled()
+  })
+
+  it('needs both files once the sample is turned off', async () => {
+    await ready()
+    useOwnFiles()
+    expect(start()).toBeDisabled()
+    expect(screen.getByText(/add both files/i)).toBeInTheDocument()
+    pick('Assessment questions', file('q.txt'))
+    expect(start()).toBeDisabled()
+    expect(uploadFiles).not.toHaveBeenCalled()
+  })
+
+  it('uploads when both files are chosen, shows the server note, then starts with the upload id', async () => {
+    const onStart = await ready()
+    useOwnFiles()
+    pick('Assessment questions', file('q.txt'))
+    pick('Your answers', file('a.py'))
+    expect(await screen.findByText(/text files will be used/i)).toBeInTheDocument()
+    expect(uploadFiles).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(start()).toBeEnabled())
+    fireEvent.click(start())
+    expect(onStart).toHaveBeenCalledWith('u1')
+  })
+
+  it('says plainly when PDF or Word files will not be read', async () => {
+    vi.mocked(uploadFiles).mockResolvedValue(
+      created(false, 'PDF and Word files are saved but not read in this demo, so the sample quiz is used.'),
+    )
+    await ready()
+    useOwnFiles()
+    pick('Assessment questions', file('q.pdf'))
+    pick('Your answers', file('a.docx'))
+    expect(await screen.findByText(/not read in this demo/i)).toBeInTheDocument()
+  })
+
+  it('rejects a wrong type without calling the API', async () => {
+    await ready()
+    useOwnFiles()
+    pick('Assessment questions', file('virus.exe'))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/\.txt, \.md, \.py, \.pdf or \.docx/)
+    expect(uploadFiles).not.toHaveBeenCalled()
+  })
+
+  it('rejects an oversize file without calling the API', async () => {
+    await ready()
+    useOwnFiles()
+    pick('Your answers', file('big.txt', 2 * 1024 * 1024 + 1))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/too large/i)
+    expect(uploadFiles).not.toHaveBeenCalled()
+  })
+
+  it('announces an upload failure and recovers when a file is replaced', async () => {
+    vi.mocked(uploadFiles).mockRejectedValueOnce(new ApiError(415, 'unsupported_file_type', 'Not a real PDF.'))
+    const onStart = await ready()
+    useOwnFiles()
+    pick('Assessment questions', file('q.pdf'))
+    pick('Your answers', file('a.pdf'))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Not a real PDF.')
+    expect(start()).toBeDisabled()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+    pick('Assessment questions', file('q.txt'))
+    await waitFor(() => expect(start()).toBeEnabled())
+    fireEvent.click(start())
+    expect(onStart).toHaveBeenCalledWith('u1')
+  })
+
+  it('explains the look-away count honestly in the consent text', () => {
+    render(<StartScreen error={null} onStart={vi.fn()} />)
+    const text = document.body.textContent ?? ''
+    expect(text).toMatch(/count of how often you look away/i)
+    expect(text).toMatch(/never changes your score/i)
+    expect(text).not.toMatch(/not analysed/i)
+    expect(text).not.toMatch(/eye.?tracking/i)
+  })
+})

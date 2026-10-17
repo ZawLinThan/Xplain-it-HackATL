@@ -41,7 +41,7 @@ async function renderApp() {
 async function startQuiz() {
   fireEvent.click(await screen.findByRole('button', { name: 'Check devices' }))
   await screen.findByText(/microphone ready/i)
-  fireEvent.click(screen.getByRole('checkbox'))
+  fireEvent.click(screen.getByRole('checkbox', { name: /I agree/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 }
 
@@ -53,7 +53,7 @@ describe('App flow (mock mode)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Check devices' }))
     await screen.findByText(/microphone ready/i)
     expect(start).toBeDisabled()
-    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('checkbox', { name: /I agree/ }))
     expect(start).toBeEnabled()
   })
 
@@ -67,7 +67,7 @@ describe('App flow (mock mode)', () => {
       expect(await screen.findAllByRole('heading', { level: 1 })).toHaveLength(1)
       fireEvent.click(await screen.findByRole('button', { name: 'finish recording' }))
       await screen.findByText(/what we heard/i)
-      fireEvent.click(screen.getByRole('button', { name: n === 3 ? 'See my report' : 'Next question' }))
+      // no click: after the transcript the app moves on by itself
     }
 
     expect(await screen.findByText('81.3')).toBeInTheDocument()

@@ -25,6 +25,15 @@ def make_wav(seconds: float, rate: int = 8000, freq: int = 440, silent: bool = F
     return buf.getvalue()
 
 
+PROF = {"X-Professor-Token": "test-token"}
+
+
+def professor_session(client, session_id: str) -> dict:
+    response = client.get(f"/api/v1/professor/sessions/{session_id}", headers=PROF)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
 def good_questions() -> dict:
     kinds = ["why", "trace", "change"]
     return {

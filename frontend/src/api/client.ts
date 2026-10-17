@@ -1,11 +1,23 @@
 import answerResultMock from './mocks/answer_result.json'
+import professorDetailMocks from './mocks/professor_sessions_detail.json'
+import professorListMock from './mocks/professor_sessions.json'
 import questionsMock from './mocks/questions.json'
 import reportMock from './mocks/report.json'
 import reportPartialMock from './mocks/report_partial.json'
 import reportWeakMock from './mocks/report_weak.json'
 import sessionMock from './mocks/session_created.json'
 import transcriptsMock from './mocks/transcripts.json'
-import type { AnswerResult, AppConfig, QuestionPublic, Report, SessionCreated } from './types'
+import type {
+  AnswerResult,
+  AppConfig,
+  ProfessorSession,
+  ProfessorSessions,
+  QuestionPublic,
+  Report,
+  SessionCreated,
+  UploadCreated,
+} from './types'
+import type { LookawayPayload } from '../lookaway/types'
 
 const MOCK = import.meta.env.VITE_MOCK === '1'
 const BASE = `${import.meta.env.VITE_API_URL ?? 'http://localhost:8000'}/api/v1`
@@ -67,13 +79,44 @@ async function mockCall<T>(value: T, ms?: number): Promise<T> {
 // ------------------------------------------------------------------ endpoints
 
 export function getConfig(): Promise<AppConfig> {
-  if (MOCK) return mockCall({ demo_mode: false }, 0)
+  if (MOCK) return mockCall({ demo_mode: false, gaze_tracking: true, debug_borders: false }, 0)
   return request<AppConfig>('/config')
 }
 
-export function createSession(): Promise<SessionCreated> {
+/** Send the two assessment files. The server says whether it will read them or use the sample. */
+export function uploadFiles(questions: File, answers: File): Promise<UploadCreated> {
+  if (MOCK) {
+    const text = (f: File) => /\.(txt|md|py)$/i.test(f.name)
+    const textUsed = text(questions) && text(answers)
+    return mockCall<UploadCreated>(
+      {
+        upload_id: 'mock-upload',
+        files: [
+          { role: 'questions', name: questions.name, size_bytes: questions.size },
+          { role: 'answers', name: answers.name, size_bytes: answers.size },
+        ],
+        text_used: textUsed,
+        note: textUsed
+          ? 'Your text files will be used to write the questions.'
+          : 'PDF and Word files are saved but not read in this demo, so the sample quiz is used.',
+      },
+      500,
+    )
+  }
+  const form = new FormData()
+  form.append('questions_file', questions)
+  form.append('answers_file', answers)
+  return request<UploadCreated>('/uploads', { method: 'POST', body: form })
+}
+
+export function createSession(uploadId?: string): Promise<SessionCreated> {
   if (MOCK) return mockCall(sessionMock as SessionCreated, 1200)
-  return request<SessionCreated>('/sessions', { method: 'POST' })
+  if (!uploadId) return request<SessionCreated>('/sessions', { method: 'POST' })
+  return request<SessionCreated>('/sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ upload_id: uploadId }),
+  })
 }
 
 /** Asking for a question starts its server-side timer, so only call this when it is shown. */
@@ -86,7 +129,12 @@ export function getQuestion(sessionId: string, n: number): Promise<QuestionPubli
   return request<QuestionPublic>(`/sessions/${encodeURIComponent(sessionId)}/questions/${n}`)
 }
 
-export function submitAnswer(sessionId: string, n: number, audio: Blob): Promise<AnswerResult> {
+export function submitAnswer(
+  sessionId: string,
+  n: number,
+  audio: Blob,
+  lookaway?: LookawayPayload,
+): Promise<AnswerResult> {
   if (MOCK) {
     const transcript = (transcriptsMock as string[])[n - 1] ?? ''
     return mockCall({ ...(answerResultMock as AnswerResult), transcript }, 1000)
@@ -94,6 +142,7 @@ export function submitAnswer(sessionId: string, n: number, audio: Blob): Promise
   const form = new FormData()
   form.append('audio', audio, 'answer.webm')
   form.append('consent', 'true')
+  if (lookaway) form.append('lookaway', JSON.stringify(lookaway)) // counts and times only
   return request<AnswerResult>(`/sessions/${encodeURIComponent(sessionId)}/questions/${n}/answer`, {
     method: 'POST',
     body: form,
@@ -108,4 +157,31 @@ export function getReport(sessionId: string): Promise<Report> {
     return mockCall(report as Report, 1500)
   }
   return request<Report>(`/sessions/${encodeURIComponent(sessionId)}/report`)
+}
+
+// ------------------------------------------------------------ professor (token protected)
+
+function professorHeaders(token: string): HeadersInit {
+  return { 'X-Professor-Token': token }
+}
+
+export function getProfessorSessions(token: string): Promise<ProfessorSessions> {
+  if (MOCK) {
+    return token
+      ? mockCall(professorListMock as ProfessorSessions, 300)
+      : Promise.reject(new ApiError(401, 'unauthorized', 'That token is not accepted.'))
+  }
+  return request<ProfessorSessions>('/professor/sessions', { headers: professorHeaders(token) })
+}
+
+export function getProfessorSession(token: string, sessionId: string): Promise<ProfessorSession> {
+  if (MOCK) {
+    const detail = (professorDetailMocks as Record<string, ProfessorSession>)[sessionId]
+    return detail
+      ? mockCall(detail, 300)
+      : Promise.reject(new ApiError(404, 'session_not_found', 'No such session.'))
+  }
+  return request<ProfessorSession>(`/professor/sessions/${encodeURIComponent(sessionId)}`, {
+    headers: professorHeaders(token),
+  })
 }

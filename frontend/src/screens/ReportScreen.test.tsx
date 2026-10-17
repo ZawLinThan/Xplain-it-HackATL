@@ -30,15 +30,12 @@ describe('ReportScreen', () => {
     expect(screen.getAllByRole('article')).toHaveLength(3)
   })
 
-  it('strong code and weak explanations shows a neutral review note', async () => {
+  it('the student report never shows a review flag or look-away information', async () => {
     await renderReport('weak')
     expect(await screen.findByText('49.3')).toBeInTheDocument()
-    const note = screen.getByRole('note')
-    expect(note).toHaveTextContent(
-      'Large gap between code score and explanation score; an instructor may want to review.',
-    )
-    expect(note).toHaveTextContent(/not a judgement/i)
-    expect(note.textContent).not.toMatch(/cheat|fraud|dishonest|guilty/i)
+    expect(screen.queryByRole('note')).toBeNull()
+    const text = document.body.textContent ?? ''
+    expect(text).not.toMatch(/review|look(ed)? away|look-away|flag/i)
     expect(screen.getByText(/no speech was detected/i)).toBeInTheDocument()
   })
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useState } from 'react'
 import { ApiError, createSession, getConfig } from './api/client'
-import { DemoModeContext } from './demoMode'
+import { AppConfigContext, DEFAULT_CONFIG, DemoModeContext } from './demoMode'
 import Recorder from './Recorder'
 import {
   clearSession,
@@ -13,7 +13,9 @@ import {
 import LoadingScreen from './screens/LoadingScreen'
 import QuestionScreen from './screens/QuestionScreen'
 import ReportScreen from './screens/ReportScreen'
+import ProfessorScreen from './screens/ProfessorScreen'
 import StartScreen from './screens/StartScreen'
+import type { AppConfig } from './api/types'
 
 /** Pick up where a refreshed tab left off. */
 function init(): FlowState {
@@ -39,12 +41,12 @@ function RecorderDemo() {
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, init)
-  const [demoMode, setDemoMode] = useState(false)
+  const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG)
 
   // Best effort: if this fails the badges just show the live-build labels.
   useEffect(() => {
     getConfig()
-      .then((c) => setDemoMode(c.demo_mode))
+      .then(setConfig)
       .catch(() => undefined)
   }, [])
 
@@ -52,10 +54,10 @@ export default function App() {
     if (state.screen === 'question' || state.screen === 'report') saveSession(state)
   }, [state])
 
-  const begin = useCallback(async () => {
+  const begin = useCallback(async (uploadId?: string) => {
     dispatch({ type: 'begin' })
     try {
-      const session = await createSession()
+      const session = await createSession(uploadId)
       dispatch({
         type: 'created',
         sessionId: session.session_id,
@@ -89,10 +91,13 @@ export default function App() {
   )
   const onNext = useCallback(() => dispatch({ type: 'next' }), [])
 
-  if (new URLSearchParams(window.location.search).get('dev') === 'recorder') return <RecorderDemo />
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('dev') === 'recorder') return <RecorderDemo />
+  if (params.get('view') === 'professor') return <ProfessorScreen />
 
   return (
-    <DemoModeContext.Provider value={demoMode}>
+    <AppConfigContext.Provider value={config}>
+    <DemoModeContext.Provider value={config.demo_mode}>
       <a className="skip" href="#main">Skip to content</a>
       <div id="main">
         {state.screen === 'start' && <StartScreen error={state.error} onStart={begin} />}
@@ -113,5 +118,6 @@ export default function App() {
         )}
       </div>
     </DemoModeContext.Provider>
+    </AppConfigContext.Provider>
   )
 }

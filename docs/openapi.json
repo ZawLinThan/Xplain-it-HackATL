@@ -34,8 +34,25 @@
           "sessions"
         ],
         "summary": "Create Session",
-        "description": "Start a session from the preloaded sample assessment and write the three questions.",
+        "description": "Start a session and write the three questions.\n\nUses the preloaded sample assessment, or the student's uploaded text files when an\n`upload_id` is given and the files were plain text. The problem score P is always the preset\none in this demo: no code is run.",
         "operationId": "create_session_api_v1_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SessionStart"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Successful Response",
@@ -43,6 +60,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SessionCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -206,6 +233,166 @@
         }
       }
     },
+    "/api/v1/uploads": {
+      "post": {
+        "tags": [
+          "uploads"
+        ],
+        "summary": "Create Upload",
+        "description": "Store the assessment questions file and the student's answers file.",
+        "operationId": "create_upload_api_v1_uploads_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_upload_api_v1_uploads_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCreated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/professor/sessions": {
+      "get": {
+        "tags": [
+          "professor"
+        ],
+        "summary": "List Sessions",
+        "description": "Recent sessions with their flags. Needs the X-Professor-Token header.",
+        "operationId": "list_sessions_api_v1_professor_sessions_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "x-professor-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Professor-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfessorSessions"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/professor/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "professor"
+        ],
+        "summary": "Get Session",
+        "operationId": "get_session_api_v1_professor_sessions__session_id__get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "x-professor-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Professor-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfessorSession"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "tags": [
@@ -263,13 +450,45 @@
             "type": "boolean",
             "title": "Demo Mode",
             "description": "True when the server returns canned LLM output and transcripts (DEMO_MODE=1)"
+          },
+          "gaze_tracking": {
+            "type": "boolean",
+            "title": "Gaze Tracking",
+            "description": "False turns the look-away detector off (GAZE_TRACKING=0)"
+          },
+          "debug_borders": {
+            "type": "boolean",
+            "title": "Debug Borders",
+            "description": "Developer toggle (DEBUG_BORDERS=1): the front end draws the red look-away borders"
           }
         },
         "type": "object",
         "required": [
-          "demo_mode"
+          "demo_mode",
+          "gaze_tracking",
+          "debug_borders"
         ],
         "title": "AppConfig"
+      },
+      "Body_create_upload_api_v1_uploads_post": {
+        "properties": {
+          "questions_file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Questions File"
+          },
+          "answers_file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Answers File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "questions_file",
+          "answers_file"
+        ],
+        "title": "Body_create_upload_api_v1_uploads_post"
       },
       "Body_submit_answer_api_v1_sessions__session_id__questions__n__answer_post": {
         "properties": {
@@ -294,6 +513,17 @@
               }
             ],
             "title": "Video"
+          },
+          "lookaway": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lookaway"
           }
         },
         "type": "object",
@@ -314,6 +544,310 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LookawayEvent": {
+        "properties": {
+          "t_ms": {
+            "maximum": 60000,
+            "minimum": 0,
+            "title": "T Ms",
+            "type": "integer"
+          },
+          "side": {
+            "enum": [
+              "left",
+              "right",
+              "top",
+              "bottom",
+              "lost"
+            ],
+            "title": "Side",
+            "type": "string"
+          }
+        },
+        "required": [
+          "t_ms",
+          "side"
+        ],
+        "title": "LookawayEvent",
+        "type": "object"
+      },
+      "ProfessorLookaway": {
+        "properties": {
+          "tracked": {
+            "type": "boolean",
+            "title": "Tracked"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "flagged": {
+            "type": "boolean",
+            "title": "Flagged"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/LookawayEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tracked",
+          "count",
+          "flagged",
+          "events"
+        ],
+        "title": "ProfessorLookaway"
+      },
+      "ProfessorQuestion": {
+        "properties": {
+          "n": {
+            "type": "integer",
+            "title": "N"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "answered": {
+            "type": "boolean",
+            "title": "Answered"
+          },
+          "transcript": {
+            "type": "string",
+            "title": "Transcript"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "late": {
+            "type": "boolean",
+            "title": "Late"
+          },
+          "seconds_used": {
+            "type": "number",
+            "title": "Seconds Used"
+          },
+          "lookaway": {
+            "$ref": "#/components/schemas/ProfessorLookaway"
+          }
+        },
+        "type": "object",
+        "required": [
+          "n",
+          "text",
+          "answered",
+          "transcript",
+          "score",
+          "late",
+          "seconds_used",
+          "lookaway"
+        ],
+        "title": "ProfessorQuestion"
+      },
+      "ProfessorSession": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "problem_score": {
+            "type": "number",
+            "title": "Problem Score"
+          },
+          "explanation_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation Score"
+          },
+          "final_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Score"
+          },
+          "gap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap"
+          },
+          "review_flag": {
+            "type": "boolean",
+            "title": "Review Flag"
+          },
+          "review_threshold": {
+            "type": "number",
+            "title": "Review Threshold"
+          },
+          "lookaway_threshold": {
+            "type": "integer",
+            "title": "Lookaway Threshold"
+          },
+          "lookaway_flagged": {
+            "type": "boolean",
+            "title": "Lookaway Flagged"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/ProfessorQuestion"
+            },
+            "type": "array",
+            "title": "Questions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "created_at",
+          "title",
+          "problem_score",
+          "explanation_score",
+          "final_score",
+          "gap",
+          "review_flag",
+          "review_threshold",
+          "lookaway_threshold",
+          "lookaway_flagged",
+          "questions"
+        ],
+        "title": "ProfessorSession"
+      },
+      "ProfessorSessionRow": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "answered": {
+            "type": "integer",
+            "title": "Answered"
+          },
+          "completed": {
+            "type": "boolean",
+            "title": "Completed"
+          },
+          "final_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Score"
+          },
+          "review_flag": {
+            "type": "boolean",
+            "title": "Review Flag"
+          },
+          "lookaway_flagged": {
+            "type": "boolean",
+            "title": "Lookaway Flagged"
+          },
+          "lookaway_tracked_all": {
+            "type": "boolean",
+            "title": "Lookaway Tracked All"
+          },
+          "lookaway_max": {
+            "type": "integer",
+            "title": "Lookaway Max",
+            "description": "Most look-aways in any one question"
+          },
+          "lookaway_max_question": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lookaway Max Question",
+            "description": "Which question had the most"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "created_at",
+          "title",
+          "answered",
+          "completed",
+          "final_score",
+          "review_flag",
+          "lookaway_flagged",
+          "lookaway_tracked_all",
+          "lookaway_max",
+          "lookaway_max_question"
+        ],
+        "title": "ProfessorSessionRow"
+      },
+      "ProfessorSessions": {
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/ProfessorSessionRow"
+            },
+            "type": "array",
+            "title": "Sessions"
+          },
+          "lookaway_threshold": {
+            "type": "integer",
+            "title": "Lookaway Threshold"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessions",
+          "lookaway_threshold"
+        ],
+        "title": "ProfessorSessions"
       },
       "QuestionPublic": {
         "properties": {
@@ -427,18 +961,6 @@
             "title": "Final Score",
             "description": "0 to 100, or null when partial"
           },
-          "review_flag": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Review Flag",
-            "description": "True when P - E is over the threshold. A prompt for a human, never a verdict"
-          },
           "partial": {
             "type": "boolean",
             "title": "Partial",
@@ -461,7 +983,6 @@
           "problem_score",
           "explanation_score",
           "final_score",
-          "review_flag",
           "partial",
           "weights",
           "questions"
@@ -477,6 +998,11 @@
           "title": {
             "type": "string",
             "title": "Title"
+          },
+          "used_upload": {
+            "type": "boolean",
+            "title": "Used Upload",
+            "default": false
           },
           "total_questions": {
             "type": "integer",
@@ -495,6 +1021,83 @@
           "title"
         ],
         "title": "SessionCreated"
+      },
+      "SessionStart": {
+        "properties": {
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id",
+            "description": "From POST /uploads; omit for the sample quiz"
+          }
+        },
+        "type": "object",
+        "title": "SessionStart"
+      },
+      "UploadCreated": {
+        "properties": {
+          "upload_id": {
+            "type": "string",
+            "title": "Upload Id"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/UploadedFile"
+            },
+            "type": "array",
+            "title": "Files"
+          },
+          "text_used": {
+            "type": "boolean",
+            "title": "Text Used",
+            "description": "True when the files were read to write the questions"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "upload_id",
+          "files",
+          "text_used",
+          "note"
+        ],
+        "title": "UploadCreated"
+      },
+      "UploadedFile": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "questions",
+              "answers"
+            ],
+            "title": "Role"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "name",
+          "size_bytes"
+        ],
+        "title": "UploadedFile"
       },
       "ValidationError": {
         "properties": {
@@ -553,6 +1156,28 @@
           "explanation"
         ],
         "title": "Weights"
+      },
+      "LookawayIn": {
+        "description": "What the browser sends with an answer: counts and times only, never images.",
+        "properties": {
+          "tracked": {
+            "title": "Tracked",
+            "type": "boolean"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/LookawayEvent"
+            },
+            "maxItems": 200,
+            "title": "Events",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tracked"
+        ],
+        "title": "LookawayIn",
+        "type": "object"
       }
     }
   }

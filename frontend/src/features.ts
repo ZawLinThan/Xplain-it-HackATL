@@ -11,10 +11,10 @@ export const FEATURES = {
   spokenAnswers: { label: 'Spoken answers with a 40-second cap', status: 'working' },
   transcription: { label: 'Speech-to-text transcript', status: 'working' },
   grading: { label: 'Grading against expected answers', status: 'working' },
-  reviewFlag: { label: 'Review flag', status: 'working' },
+  lookAway: { label: 'Look-away count for your instructor', status: 'working' },
   typedAnswers: { label: 'Typed-answer accommodation', status: 'planned' },
-  fileUpload: { label: 'Upload and parse a real assessment file', status: 'planned' },
-  instructorDashboard: { label: 'Instructor dashboard', status: 'planned' },
+  fileUpload: { label: 'Upload your own files (text is read; PDF and Word are saved only)', status: 'simulated' },
+  instructorView: { label: 'Instructor view', status: 'working' },
 } as const satisfies Record<string, { label: string; status: FeatureStatus }>
 
 export type FeatureKey = keyof typeof FEATURES

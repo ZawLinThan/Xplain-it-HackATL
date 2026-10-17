@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests"))
 
 os.environ["DEMO_MODE"] = "1"
+os.environ["PROFESSOR_TOKEN"] = "seed"
 os.environ.setdefault("DATABASE_PATH", str(Path(tempfile.mkdtemp()) / "demo.db"))
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -30,7 +31,10 @@ def run(student: str) -> dict:
         client.get(f"/api/v1/sessions/{sid}/questions/{n}")
         files = {"audio": ("a.wav", make_wav(2.0), "audio/wav")}
         client.post(f"/api/v1/sessions/{sid}/questions/{n}/answer", data={"consent": "true"}, files=files)
-    return client.get(f"/api/v1/sessions/{sid}/report").json()
+    report = client.get(f"/api/v1/sessions/{sid}/report").json()
+    head = {"X-Professor-Token": os.environ["PROFESSOR_TOKEN"]}
+    report["review_flag"] = client.get(f"/api/v1/professor/sessions/{sid}", headers=head).json()["review_flag"]
+    return report
 
 
 if __name__ == "__main__":

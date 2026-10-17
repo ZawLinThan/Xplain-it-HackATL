@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .env
+
+# large model files copied by npm run setup-gaze
+public/mediapipe/

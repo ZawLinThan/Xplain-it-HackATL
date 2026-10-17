@@ -49,3 +49,15 @@ def final_score(p: float, e: float, wp: float = DEFAULT_WP, we: float = DEFAULT_
 def review_flag(p: float, e: float, threshold: float = DEFAULT_THRESHOLD) -> bool:
     # round first so 0.8 - 0.4 is not read as 0.4000000000000001
     return round(p - e, 9) > threshold
+
+
+def lookaway_flag(count: int, threshold: int) -> bool:
+    """True when the student looked away at least `threshold` times in one recording.
+
+    A prompt for a professor to look, never a verdict, and never an input to any score.
+    """
+    return count >= threshold
+
+
+def session_flagged(counts: Sequence[int], threshold: int) -> bool:
+    return any(lookaway_flag(c, threshold) for c in counts)

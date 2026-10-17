@@ -6,10 +6,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 from . import db
 from .errors import install_handlers
-from .routers import sessions
+from .schemas import LookawayIn
+from .routers import professor, sessions, uploads
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logging.getLogger("httpx").setLevel(logging.WARNING)  # request URLs are noise
@@ -33,9 +35,29 @@ app.add_middleware(
         if origin.strip()
     ],
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-Professor-Token"],
 )
+
+
+def custom_openapi() -> dict:
+    """Add the look-away payload to the contract. It travels as a JSON string in a form field,
+    so FastAPI would not otherwise publish it and the front end could not generate its type."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(title=app.title, version=app.version, routes=app.routes)
+    model = LookawayIn.model_json_schema(ref_template="#/components/schemas/{model}")
+    defs = model.pop("$defs", {})
+    schemas = schema.setdefault("components", {}).setdefault("schemas", {})
+    schemas.update(defs)
+    schemas["LookawayIn"] = model
+    app.openapi_schema = schema
+    return schema
+
+
+app.openapi = custom_openapi  # type: ignore[method-assign]
 app.include_router(sessions.router)
+app.include_router(uploads.router)
+app.include_router(professor.router)
 
 
 @app.get("/api/v1/health", tags=["health"])

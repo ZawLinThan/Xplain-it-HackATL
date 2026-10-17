@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, getQuestion, submitAnswer } from '../api/client'
+import { AppConfigContext, DEFAULT_CONFIG } from '../demoMode'
 import QuestionScreen from './QuestionScreen'
 
 vi.mock('../api/client', async (importOriginal) => {
@@ -10,8 +11,21 @@ vi.mock('../api/client', async (importOriginal) => {
 
 // The real recorder needs a browser; this stand-in just lets the test "finish recording".
 vi.mock('../Recorder', () => ({
-  default: ({ onComplete }: { onComplete: (b: Blob, s: number) => void }) => (
-    <button type="button" onClick={() => onComplete(new Blob(['x'], { type: 'audio/webm' }), 12.3)}>
+  default: ({
+    onComplete,
+    hold,
+    autoStart,
+  }: {
+    onComplete: (b: Blob, s: number) => void
+    hold?: boolean
+    autoStart?: boolean
+  }) => (
+    <button
+      type="button"
+      data-hold={String(hold)}
+      data-auto={String(autoStart)}
+      onClick={() => onComplete(new Blob(['x'], { type: 'audio/webm' }), 12.3)}
+    >
       finish recording
     </button>
   ),
@@ -20,7 +34,7 @@ vi.mock('../Recorder', () => ({
 const question = { index: 1, total: 3, text: 'Why did you use a set?', max_seconds: 40 }
 const answered = { transcript: 'Because sets are fast.', seconds_used: 12.3, late: false }
 
-function setup(index = 1) {
+function setup(index = 1, config = DEFAULT_CONFIG) {
   const props = {
     sessionId: 's1',
     index,
@@ -29,13 +43,93 @@ function setup(index = 1) {
     onNext: vi.fn(),
     onSessionLost: vi.fn(),
   }
-  render(<QuestionScreen {...props} />)
+  render(
+    <AppConfigContext.Provider value={config}>
+      <QuestionScreen {...props} />
+    </AppConfigContext.Provider>,
+  )
   return props
 }
 
 beforeEach(() => {
   vi.mocked(getQuestion).mockReset().mockResolvedValue({ ...question })
   vi.mocked(submitAnswer).mockReset().mockResolvedValue({ ...answered })
+})
+
+afterEach(() => vi.useRealTimers())
+
+describe('QuestionScreen flow', () => {
+  it('reveals the question word by word, and only then lets the timer start by itself', async () => {
+    setup()
+    const recorder = await screen.findByRole('button', { name: 'finish recording' })
+    expect(recorder).toHaveAttribute('data-auto', 'true')
+    expect(recorder).toHaveAttribute('data-hold', 'true') // still revealing
+    const visible = () => document.querySelectorAll('.word.on').length
+    expect(visible()).toBeLessThan(6)
+    await waitFor(() => expect(recorder).toHaveAttribute('data-hold', 'false'), { timeout: 4000 })
+    expect(visible()).toBe(6) // all six words are showing
+  })
+
+  it('gives screen readers the whole question at once and hides the animated words', async () => {
+    setup()
+    const heading = await screen.findByRole('heading', { name: question.text })
+    expect(heading.querySelector('[aria-hidden="true"]')).not.toBeNull()
+    expect(heading.querySelector('.sr-only')).toHaveTextContent(question.text)
+  })
+
+  it('sends the look-away counts with the answer, and only counts and times', async () => {
+    setup()
+    fireEvent.click(await screen.findByRole('button', { name: 'finish recording' }))
+    await screen.findByText('Because sets are fast.')
+    const sent = vi.mocked(submitAnswer).mock.calls[0][3]
+    expect(sent).toEqual({ tracked: false, events: [] }) // no camera in this test: not tracked, not zero
+  })
+
+  it('moves on by itself 5 seconds after the transcript, once', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const props = setup()
+    fireEvent.click(await screen.findByRole('button', { name: 'finish recording' }))
+    await screen.findByText('Because sets are fast.')
+    expect(props.onNext).not.toHaveBeenCalled()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5200)
+    })
+    expect(props.onNext).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000)
+    })
+    expect(props.onNext).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not move on by itself after a failed upload', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.mocked(submitAnswer).mockRejectedValue(new ApiError(503, 'transcription_unavailable', 'Try again.'))
+    const props = setup()
+    fireEvent.click(await screen.findByRole('button', { name: 'finish recording' }))
+    await screen.findByRole('alert')
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000)
+    })
+    expect(props.onNext).not.toHaveBeenCalled()
+  })
+
+  it('shows the red debug borders only when the backend turns them on', async () => {
+    const { unmount } = (() => {
+      setup()
+      return { unmount: () => cleanup() }
+    })()
+    await screen.findByRole('button', { name: 'finish recording' })
+    expect(screen.queryByTestId('gaze-debug')).toBeNull()
+    unmount()
+    setup(1, { ...DEFAULT_CONFIG, debug_borders: true })
+    expect(await screen.findByTestId('gaze-debug')).toBeInTheDocument()
+  })
+
+  it('shows no look-away or flag wording to the student', async () => {
+    setup()
+    await screen.findByRole('button', { name: 'finish recording' })
+    expect(document.body.textContent).not.toMatch(/look(ed)? away|look-away|flag|review/i)
+  })
 })
 
 describe('QuestionScreen', () => {

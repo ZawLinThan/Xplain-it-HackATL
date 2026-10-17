@@ -37,6 +37,9 @@ See `.env.example` for the full list.
 | `LLM_PROVIDER`, `STT_PROVIDER` | `groq`, `demo`, `fake`, `none` (STT also `local`) |
 | `WP`, `WE`, `REVIEW_THRESHOLD` | Score weights (default 0.6 / 0.4) and the review gap (0.40) |
 | `ANSWER_GRACE_SECONDS` | Time allowed on top of 40 s for reading and uploading (30). Later answers score 0 |
+| `UPLOAD_DIR`, `MAX_UPLOAD_BYTES` | Where uploaded files go and the per-file limit (2 MB) |
+| `LOOKAWAY_THRESHOLD`, `GAZE_TRACKING`, `DEBUG_BORDERS` | Flag at this many look-aways in one answer (4); turn the detector off; draw the red borders for developers |
+| `PROFESSOR_TOKEN` | Shared token for the instructor routes. Empty: 404 (demo mode uses `demo`) |
 | `DATABASE_PATH`, `AUDIO_DIR` | Where SQLite and temporary audio live |
 | `RETAIN_AUDIO`, `SESSION_TTL_HOURS` | Keep audio (off by default); age at which `python -m app.cleanup` deletes sessions |
 
@@ -44,11 +47,13 @@ See `.env.example` for the full list.
 
 All under `/api/v1`. Errors look like `{"error": {"code": "...", "message": "..."}}`.
 
-- `GET /health`, `GET /config` (`demo_mode`)
-- `POST /sessions`
+- `GET /health`, `GET /config` (`demo_mode`, `gaze_tracking`, `debug_borders`)
+- `POST /uploads` (multipart `questions_file` and `answers_file`; .txt .md .py are read, .pdf .docx are stored only)
+- `POST /sessions` (optional JSON `{upload_id}`)
 - `GET /sessions/{id}/questions/{n}` (n is 1 to 3; the first call starts that question's clock)
 - `POST /sessions/{id}/questions/{n}/answer` (multipart: `audio`, `consent`, optional `video`)
 - `GET /sessions/{id}/report`
+- `GET /professor/sessions`, `GET /professor/sessions/{id}` (header `X-Professor-Token`): scores, transcripts, look-away counts and flags. Students never receive these.
 
 Regenerate the contract for the front end with `make gen-openapi`, then `make gen-types`.
 

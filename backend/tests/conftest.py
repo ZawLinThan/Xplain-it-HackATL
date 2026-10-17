@@ -11,7 +11,20 @@ from app.transcribe import FakeTranscriber
 def isolated_env(tmp_path, monkeypatch):
     monkeypatch.setenv("DATABASE_PATH", str(tmp_path / "test.db"))
     monkeypatch.setenv("AUDIO_DIR", str(tmp_path / "audio"))
-    for name in ("RETAIN_AUDIO", "RETAIN_VIDEO", "DEMO_MODE", "WP", "WE", "ANSWER_GRACE_SECONDS"):
+    monkeypatch.setenv("UPLOAD_DIR", str(tmp_path / "uploads"))
+    monkeypatch.setenv("PROFESSOR_TOKEN", "test-token")
+    for name in (
+        "RETAIN_AUDIO",
+        "RETAIN_VIDEO",
+        "DEMO_MODE",
+        "WP",
+        "WE",
+        "ANSWER_GRACE_SECONDS",
+        "LOOKAWAY_THRESHOLD",
+        "GAZE_TRACKING",
+        "DEBUG_BORDERS",
+        "MAX_UPLOAD_BYTES",
+    ):
         monkeypatch.delenv(name, raising=False)
 
 

@@ -35,7 +35,11 @@ export interface paths {
         put?: never;
         /**
          * Create Session
-         * @description Start a session from the preloaded sample assessment and write the three questions.
+         * @description Start a session and write the three questions.
+         *
+         *     Uses the preloaded sample assessment, or the student's uploaded text files when an
+         *     `upload_id` is given and the files were plain text. The problem score P is always the preset
+         *     one in this demo: no code is run.
          */
         post: operations["create_session_api_v1_sessions_post"];
         delete?: never;
@@ -101,6 +105,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Upload
+         * @description Store the assessment questions file and the student's answers file.
+         */
+        post: operations["create_upload_api_v1_uploads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/professor/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sessions
+         * @description Recent sessions with their flags. Needs the X-Professor-Token header.
+         */
+        get: operations["list_sessions_api_v1_professor_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/professor/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session */
+        get: operations["get_session_api_v1_professor_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -138,6 +199,23 @@ export interface components {
              * @description True when the server returns canned LLM output and transcripts (DEMO_MODE=1)
              */
             demo_mode: boolean;
+            /**
+             * Gaze Tracking
+             * @description False turns the look-away detector off (GAZE_TRACKING=0)
+             */
+            gaze_tracking: boolean;
+            /**
+             * Debug Borders
+             * @description Developer toggle (DEBUG_BORDERS=1): the front end draws the red look-away borders
+             */
+            debug_borders: boolean;
+        };
+        /** Body_create_upload_api_v1_uploads_post */
+        Body_create_upload_api_v1_uploads_post: {
+            /** Questions File */
+            questions_file: string;
+            /** Answers File */
+            answers_file: string;
         };
         /** Body_submit_answer_api_v1_sessions__session_id__questions__n__answer_post */
         Body_submit_answer_api_v1_sessions__session_id__questions__n__answer_post: {
@@ -150,11 +228,117 @@ export interface components {
             consent: boolean;
             /** Video */
             video?: string | null;
+            /** Lookaway */
+            lookaway?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** LookawayEvent */
+        LookawayEvent: {
+            /** T Ms */
+            t_ms: number;
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "left" | "right" | "top" | "bottom" | "lost";
+        };
+        /** ProfessorLookaway */
+        ProfessorLookaway: {
+            /** Tracked */
+            tracked: boolean;
+            /** Count */
+            count: number;
+            /** Flagged */
+            flagged: boolean;
+            /** Events */
+            events: components["schemas"]["LookawayEvent"][];
+        };
+        /** ProfessorQuestion */
+        ProfessorQuestion: {
+            /** N */
+            n: number;
+            /** Text */
+            text: string;
+            /** Answered */
+            answered: boolean;
+            /** Transcript */
+            transcript: string;
+            /** Score */
+            score: number | null;
+            /** Late */
+            late: boolean;
+            /** Seconds Used */
+            seconds_used: number;
+            lookaway: components["schemas"]["ProfessorLookaway"];
+        };
+        /** ProfessorSession */
+        ProfessorSession: {
+            /** Session Id */
+            session_id: string;
+            /** Created At */
+            created_at: number;
+            /** Title */
+            title: string;
+            /** Problem Score */
+            problem_score: number;
+            /** Explanation Score */
+            explanation_score: number | null;
+            /** Final Score */
+            final_score: number | null;
+            /** Gap */
+            gap: number | null;
+            /** Review Flag */
+            review_flag: boolean;
+            /** Review Threshold */
+            review_threshold: number;
+            /** Lookaway Threshold */
+            lookaway_threshold: number;
+            /** Lookaway Flagged */
+            lookaway_flagged: boolean;
+            /** Questions */
+            questions: components["schemas"]["ProfessorQuestion"][];
+        };
+        /** ProfessorSessionRow */
+        ProfessorSessionRow: {
+            /** Session Id */
+            session_id: string;
+            /** Created At */
+            created_at: number;
+            /** Title */
+            title: string;
+            /** Answered */
+            answered: number;
+            /** Completed */
+            completed: boolean;
+            /** Final Score */
+            final_score: number | null;
+            /** Review Flag */
+            review_flag: boolean;
+            /** Lookaway Flagged */
+            lookaway_flagged: boolean;
+            /** Lookaway Tracked All */
+            lookaway_tracked_all: boolean;
+            /**
+             * Lookaway Max
+             * @description Most look-aways in any one question
+             */
+            lookaway_max: number;
+            /**
+             * Lookaway Max Question
+             * @description Which question had the most
+             */
+            lookaway_max_question: number | null;
+        };
+        /** ProfessorSessions */
+        ProfessorSessions: {
+            /** Sessions */
+            sessions: components["schemas"]["ProfessorSessionRow"][];
+            /** Lookaway Threshold */
+            lookaway_threshold: number;
         };
         /** QuestionPublic */
         QuestionPublic: {
@@ -206,11 +390,6 @@ export interface components {
              */
             final_score: number | null;
             /**
-             * Review Flag
-             * @description True when P - E is over the threshold. A prompt for a human, never a verdict
-             */
-            review_flag: boolean | null;
-            /**
              * Partial
              * @description True when some answers could not be graded
              */
@@ -226,6 +405,11 @@ export interface components {
             /** Title */
             title: string;
             /**
+             * Used Upload
+             * @default false
+             */
+            used_upload: boolean;
+            /**
              * Total Questions
              * @default 3
              */
@@ -235,6 +419,40 @@ export interface components {
              * @default 40
              */
             max_answer_seconds: number;
+        };
+        /** SessionStart */
+        SessionStart: {
+            /**
+             * Upload Id
+             * @description From POST /uploads; omit for the sample quiz
+             */
+            upload_id?: string | null;
+        };
+        /** UploadCreated */
+        UploadCreated: {
+            /** Upload Id */
+            upload_id: string;
+            /** Files */
+            files: components["schemas"]["UploadedFile"][];
+            /**
+             * Text Used
+             * @description True when the files were read to write the questions
+             */
+            text_used: boolean;
+            /** Note */
+            note: string;
+        };
+        /** UploadedFile */
+        UploadedFile: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "questions" | "answers";
+            /** Name */
+            name: string;
+            /** Size Bytes */
+            size_bytes: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -255,6 +473,16 @@ export interface components {
             problem: number;
             /** Explanation */
             explanation: number;
+        };
+        /**
+         * LookawayIn
+         * @description What the browser sends with an answer: counts and times only, never images.
+         */
+        LookawayIn: {
+            /** Tracked */
+            tracked: boolean;
+            /** Events */
+            events?: components["schemas"]["LookawayEvent"][];
         };
     };
     responses: never;
@@ -292,7 +520,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SessionStart"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             201: {
@@ -301,6 +533,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -391,6 +632,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Report"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_upload_api_v1_uploads_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_create_upload_api_v1_uploads_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_professor_sessions_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                "x-professor-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfessorSessions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_session_api_v1_professor_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-professor-token"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfessorSession"];
                 };
             };
             /** @description Validation Error */

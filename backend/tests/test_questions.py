@@ -11,7 +11,7 @@ def test_llm_questions_are_saved_and_public_fields_only(client, llm):
     assert response.status_code == 201
     body = response.json()
     assert body["total_questions"] == 3 and body["max_answer_seconds"] == 40
-    assert set(body) == {"session_id", "title", "total_questions", "max_answer_seconds"}
+    assert set(body) == {"session_id", "title", "used_upload", "total_questions", "max_answer_seconds"}
     q = client.get(f"/api/v1/sessions/{body['session_id']}/questions/1").json()
     assert q["text"].startswith("Generated question number 1")
     assert set(q) == {"index", "total", "text", "max_seconds"}

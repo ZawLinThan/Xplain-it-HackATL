@@ -1,0 +1,44 @@
+{
+  "lookaway_threshold": 4,
+  "sessions": [
+    {
+      "session_id": "demo-flagged",
+      "created_at": 1760000000,
+      "title": "Intro Python Quiz 3: strings and lists",
+      "answered": 3,
+      "completed": true,
+      "final_score": 81.3,
+      "review_flag": false,
+      "lookaway_flagged": true,
+      "lookaway_tracked_all": true,
+      "lookaway_max": 5,
+      "lookaway_max_question": 2
+    },
+    {
+      "session_id": "demo-clean",
+      "created_at": 1759990000,
+      "title": "Intro Python Quiz 3: strings and lists",
+      "answered": 3,
+      "completed": true,
+      "final_score": 73.3,
+      "review_flag": false,
+      "lookaway_flagged": false,
+      "lookaway_tracked_all": true,
+      "lookaway_max": 1,
+      "lookaway_max_question": 2
+    },
+    {
+      "session_id": "demo-untracked",
+      "created_at": 1759980000,
+      "title": "Intro Python Quiz 3: strings and lists",
+      "answered": 3,
+      "completed": true,
+      "final_score": 49.3,
+      "review_flag": true,
+      "lookaway_flagged": false,
+      "lookaway_tracked_all": false,
+      "lookaway_max": 0,
+      "lookaway_max_question": null
+    }
+  ]
+}

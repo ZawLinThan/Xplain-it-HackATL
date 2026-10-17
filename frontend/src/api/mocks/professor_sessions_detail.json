@@ -1,0 +1,213 @@
+{
+  "demo-flagged": {
+    "session_id": "demo-flagged",
+    "created_at": 1760000000,
+    "title": "Intro Python Quiz 3: strings and lists",
+    "problem_score": 0.7333,
+    "explanation_score": 0.9333,
+    "final_score": 81.3,
+    "gap": -0.2,
+    "review_flag": false,
+    "review_threshold": 0.4,
+    "lookaway_threshold": 4,
+    "lookaway_flagged": true,
+    "questions": [
+      {
+        "n": 1,
+        "text": "In count_vowels you stored the vowels in a set. Why a set?",
+        "answered": true,
+        "transcript": "I used a set because membership checks are fast.",
+        "score": 5,
+        "late": false,
+        "seconds_used": 18.5,
+        "lookaway": {
+          "tracked": true,
+          "count": 0,
+          "flagged": false,
+          "events": []
+        }
+      },
+      {
+        "n": 2,
+        "text": "Walk me through seen and result after processing 3, 1, 3, 2.",
+        "answered": true,
+        "transcript": "seen holds 3, 1 and 2, and result is 3, 1, 2.",
+        "score": 5,
+        "late": false,
+        "seconds_used": 18.5,
+        "lookaway": {
+          "tracked": true,
+          "count": 5,
+          "flagged": true,
+          "events": [
+            {
+              "t_ms": 3000,
+              "side": "left"
+            },
+            {
+              "t_ms": 9000,
+              "side": "right"
+            },
+            {
+              "t_ms": 15000,
+              "side": "left"
+            },
+            {
+              "t_ms": 21000,
+              "side": "right"
+            },
+            {
+              "t_ms": 30000,
+              "side": "left"
+            }
+          ]
+        }
+      },
+      {
+        "n": 3,
+        "text": "Why did your code fail on lists of lists, and how would you fix it?",
+        "answered": true,
+        "transcript": "Lists are not hashable, so I would convert them to tuples.",
+        "score": 4,
+        "late": false,
+        "seconds_used": 18.5,
+        "lookaway": {
+          "tracked": true,
+          "count": 1,
+          "flagged": false,
+          "events": [
+            {
+              "t_ms": 12000,
+              "side": "top"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "demo-clean": {
+    "session_id": "demo-clean",
+    "created_at": 1759990000,
+    "title": "Intro Python Quiz 3: strings and lists",
+    "problem_score": 0.7333,
+    "explanation_score": 0.7333,
+    "final_score": 73.3,
+    "gap": 0.0,
+    "review_flag": false,
+    "review_threshold": 0.4,
+    "lookaway_threshold": 4,
+    "lookaway_flagged": false,
+    "questions": [
+      {
+        "n": 1,
+        "text": "In count_vowels you stored the vowels in a set. Why a set?",
+        "answered": true,
+        "transcript": "A set is quick to search.",
+        "score": 4,
+        "late": false,
+        "seconds_used": 18.5,
+        "lookaway": {
+          "tracked": true,
+          "count": 0,
+          "flagged": false,
+          "events": []
+        }
+      },
+      {
+        "n": 2,
+        "text": "Walk me through seen and result after processing 3, 1, 3, 2.",
+        "answered": true,
+        "transcript": "The seen set has the numbers I have visited.",
+        "score": 4,
+        "late": false,
+        "seconds_used": 18.5,
+        "lookaway": {
+          "tracked": true,
+          "count": 1,
+          "flagged": false,
+          "events": [
+            {
+              "t_ms": 12000,
+              "side": "top"
+            }
+          ]
+        }
+      },
+      {
+        "n": 3,
+        "text": "Why did your code fail on lists of lists, and how would you fix it?",
+        "answered": true,
+        "transcript": "Convert to tuples first.",
+        "score": 3,
+        "late": false,
+        "seconds_used": 18.5,
+        "lookaway": {
+          "tracked": true,
+          "count": 0,
+          "flagged": false,
+          "events": []
+        }
+      }
+    ]
+  },
+  "demo-untracked": {
+    "session_id": "demo-untracked",
+    "created_at": 1759980000,
+    "title": "Intro Python Quiz 3: strings and lists",
+    "problem_score": 0.7333,
+    "explanation_score": 0.1333,
+    "final_score": 49.3,
+    "gap": 0.6,
+    "review_flag": true,
+    "review_threshold": 0.4,
+    "lookaway_threshold": 4,
+    "lookaway_flagged": false,
+    "questions": [
+      {
+        "n": 1,
+        "text": "In count_vowels you stored the vowels in a set. Why a set?",
+        "answered": true,
+        "transcript": "Um, it is faster.",
+        "score": 1,
+        "late": false,
+        "seconds_used": 18.5,
+        "lookaway": {
+          "tracked": false,
+          "count": 0,
+          "flagged": false,
+          "events": []
+        }
+      },
+      {
+        "n": 2,
+        "text": "Walk me through seen and result after processing 3, 1, 3, 2.",
+        "answered": true,
+        "transcript": "I do not remember.",
+        "score": 1,
+        "late": false,
+        "seconds_used": 18.5,
+        "lookaway": {
+          "tracked": false,
+          "count": 0,
+          "flagged": false,
+          "events": []
+        }
+      },
+      {
+        "n": 3,
+        "text": "Why did your code fail on lists of lists, and how would you fix it?",
+        "answered": true,
+        "transcript": "",
+        "score": 0,
+        "late": false,
+        "seconds_used": 18.5,
+        "lookaway": {
+          "tracked": false,
+          "count": 0,
+          "flagged": false,
+          "events": []
+        }
+      }
+    ]
+  }
+}

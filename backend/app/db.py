@@ -54,6 +54,24 @@ CREATE TABLE IF NOT EXISTS scores (
     weight_explanation REAL NOT NULL,
     created_at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS uploads (
+    upload_id TEXT PRIMARY KEY,
+    created_at REAL NOT NULL,
+    questions_name TEXT NOT NULL,
+    answers_name TEXT NOT NULL,
+    questions_ext TEXT NOT NULL,
+    answers_ext TEXT NOT NULL,
+    text_used INTEGER NOT NULL,
+    extracted_text TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS lookaways (
+    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    n INTEGER NOT NULL,
+    tracked INTEGER NOT NULL,
+    count INTEGER NOT NULL,
+    events_json TEXT NOT NULL,
+    PRIMARY KEY (session_id, n)
+);
 CREATE TABLE IF NOT EXISTS llm_cache (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
@@ -236,6 +254,78 @@ def save_scores(
                 time.time(),
             ),
         )
+
+
+# ------------------------------------------------------------------- uploads
+
+
+def create_upload(
+    upload_id: str,
+    questions_name: str,
+    answers_name: str,
+    questions_ext: str,
+    answers_ext: str,
+    text_used: bool,
+    extracted_text: str,
+) -> None:
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO uploads (upload_id, created_at, questions_name, answers_name,"
+            " questions_ext, answers_ext, text_used, extracted_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                upload_id,
+                time.time(),
+                questions_name,
+                answers_name,
+                questions_ext,
+                answers_ext,
+                int(text_used),
+                extracted_text,
+            ),
+        )
+
+
+def get_upload(upload_id: str) -> sqlite3.Row | None:
+    with connect() as conn:
+        return conn.execute("SELECT * FROM uploads WHERE upload_id = ?", (upload_id,)).fetchone()
+
+
+def purge_old_uploads(max_age_hours: float) -> list[str]:
+    """Delete upload rows older than the limit and return their ids (to delete the files)."""
+    cutoff = time.time() - max_age_hours * 3600
+    with connect() as conn:
+        ids = [
+            r["upload_id"]
+            for r in conn.execute("SELECT upload_id FROM uploads WHERE created_at < ?", (cutoff,))
+        ]
+        for upload_id in ids:
+            conn.execute("DELETE FROM uploads WHERE upload_id = ?", (upload_id,))
+    return ids
+
+
+# ------------------------------------------------------------------ look-away
+
+
+def save_lookaway(session_id: str, n: int, tracked: bool, events: list[dict]) -> None:
+    with connect() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO lookaways (session_id, n, tracked, count, events_json)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (session_id, n, int(tracked), len(events) if tracked else 0, json.dumps(events)),
+        )
+
+
+def list_lookaways(session_id: str) -> dict[int, sqlite3.Row]:
+    with connect() as conn:
+        rows = conn.execute("SELECT * FROM lookaways WHERE session_id = ?", (session_id,)).fetchall()
+    return {r["n"]: r for r in rows}
+
+
+def list_recent_sessions(limit: int) -> list[sqlite3.Row]:
+    with connect() as conn:
+        return conn.execute(
+            "SELECT * FROM sessions ORDER BY created_at DESC LIMIT ?", (limit,)
+        ).fetchall()
 
 
 # ----------------------------------------------------------------- llm cache

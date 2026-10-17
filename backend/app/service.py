@@ -156,7 +156,6 @@ def build_report(session_id: str, llm: LLMProvider) -> Report:
         problem_score=round(saved["problem_score"], 4),
         explanation_score=None if partial else round(saved["explanation_score"], 4),
         final_score=None if partial else saved["final_score"],
-        review_flag=None if partial else bool(saved["review_flag"]),
         partial=partial,
         weights=Weights(problem=round(saved["weight_problem"], 4), explanation=round(saved["weight_explanation"], 4)),
         questions=_result_rows(questions, answers),

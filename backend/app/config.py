@@ -49,3 +49,32 @@ def answer_grace_seconds() -> float:
 
 def session_ttl_hours() -> float:
     return env_float("SESSION_TTL_HOURS", 24.0)
+
+
+def upload_dir() -> Path:
+    return Path(os.getenv("UPLOAD_DIR", str(BACKEND_DIR / "uploads")))
+
+
+def max_upload_bytes() -> int:
+    return int(env_float("MAX_UPLOAD_BYTES", 2 * 1024 * 1024))
+
+
+def lookaway_threshold() -> int:
+    return max(1, int(env_float("LOOKAWAY_THRESHOLD", 4)))
+
+
+def gaze_tracking() -> bool:
+    return os.getenv("GAZE_TRACKING", "1").strip().lower() not in {"0", "false", "no"}
+
+
+def debug_borders() -> bool:
+    return env_flag("DEBUG_BORDERS")
+
+
+def professor_token() -> str:
+    """Shared token for the professor routes. Empty means the routes are off (404), except that
+    DEMO_MODE=1 falls back to the token `demo`."""
+    token = os.getenv("PROFESSOR_TOKEN", "").strip()
+    if token:
+        return token
+    return "demo" if demo_mode() else ""

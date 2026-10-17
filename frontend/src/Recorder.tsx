@@ -8,6 +8,14 @@ interface RecorderProps {
   maxSeconds: number
   /** Called once with the audio and the seconds actually recorded. */
   onComplete: (blob: Blob, secondsUsed: number) => void
+  /** Start recording by itself (no button) as soon as the devices are ready and `hold` is off. */
+  autoStart?: boolean
+  /** While true an auto-start waits, for example while the question is still being revealed. */
+  hold?: boolean
+  /** Called when the recording and its countdown begin. */
+  onStarted?: () => void
+  /** Called once when the camera preview is ready (the video element), or null when there is no camera. */
+  onVideoReady?: (video: HTMLVideoElement | null) => void
 }
 
 const RADIUS = 52
@@ -20,12 +28,20 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS
  * The countdown is computed from performance.now() on every tick rather than by counting
  * ticks, so a throttled background tab cannot make a recording last longer than maxSeconds.
  */
-export default function Recorder({ maxSeconds, onComplete }: RecorderProps) {
+export default function Recorder({
+  maxSeconds,
+  onComplete,
+  autoStart = false,
+  hold = false,
+  onStarted,
+  onVideoReady,
+}: RecorderProps) {
   const [state, setState] = useState<RecorderState>('requesting')
   const [error, setError] = useState('')
   const [hasVideo, setHasVideo] = useState(false)
   const [remaining, setRemaining] = useState(maxSeconds)
   const [announcement, setAnnouncement] = useState('')
+  const [startFailed, setStartFailed] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -35,9 +51,14 @@ export default function Recorder({ maxSeconds, onComplete }: RecorderProps) {
   const startedAtRef = useRef(0)
   const announcedRef = useRef({ ten: false, zero: false })
   const onCompleteRef = useRef(onComplete)
+  const onStartedRef = useRef(onStarted)
+  const onVideoReadyRef = useRef(onVideoReady)
+  const videoReportedRef = useRef(false)
 
   useEffect(() => {
     onCompleteRef.current = onComplete
+    onStartedRef.current = onStarted
+    onVideoReadyRef.current = onVideoReady
   })
 
   const clearTimer = useCallback(() => {
@@ -83,6 +104,13 @@ export default function Recorder({ maxSeconds, onComplete }: RecorderProps) {
       videoRef.current.srcObject = streamRef.current
     }
   }, [hasVideo, state])
+
+  // Tell the parent once when the preview is ready, so the look-away detector can attach to it.
+  useEffect(() => {
+    if (state !== 'idle' || videoReportedRef.current) return
+    videoReportedRef.current = true
+    onVideoReadyRef.current?.(hasVideo ? videoRef.current : null)
+  }, [state, hasVideo])
 
   const stop = useCallback(() => {
     clearTimer()
@@ -134,12 +162,20 @@ export default function Recorder({ maxSeconds, onComplete }: RecorderProps) {
       setAnnouncement('Recording started.')
       setState('recording')
       timerRef.current = window.setInterval(tick, 100)
+      onStartedRef.current?.()
     } catch {
       recorderRef.current = null
-      setError('Recording could not start in this browser.')
-      setState('error')
+      setStartFailed(true)
+      setError('Recording could not start by itself. Press Start answering to try again.')
     }
   }, [clearTimer, maxSeconds, tick])
+
+  // Auto-start: the timer begins the moment the question is fully on screen.
+  useEffect(() => {
+    // Starting the recorder is a call into an external system (MediaRecorder), not derived state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (autoStart && !hold && state === 'idle' && !startFailed) start()
+  }, [autoStart, hold, state, startFailed, start])
 
   const shown = Math.ceil(remaining)
   const progress = remaining / maxSeconds
@@ -178,7 +214,12 @@ export default function Recorder({ maxSeconds, onComplete }: RecorderProps) {
         <span className="countdown-text">{shown} s left</span>
       </div>
 
-      {state === 'idle' && (
+      {state === 'idle' && autoStart && !startFailed && (
+        <p className="muted">
+          {hold ? 'The timer starts by itself when the whole question is on screen.' : 'Starting…'}
+        </p>
+      )}
+      {state === 'idle' && (!autoStart || startFailed) && (
         <button type="button" className="primary" onClick={start}>
           Start answering
         </button>
@@ -189,7 +230,7 @@ export default function Recorder({ maxSeconds, onComplete }: RecorderProps) {
         </button>
       )}
       {state === 'done' && <p className="muted">Recording saved.</p>}
-      {state === 'error' && (
+      {error && (state === 'error' || state === 'idle') && (
         <p role="alert" className="error">
           {error}
         </p>

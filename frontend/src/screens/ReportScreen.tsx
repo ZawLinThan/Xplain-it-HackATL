@@ -125,16 +125,6 @@ export default function ReportScreen({ sessionId, onRestart }: ReportScreenProps
         </section>
       )}
 
-      {report.review_flag && (
-        <section className="card notice" role="note">
-          <p>
-            <strong>Large gap between code score and explanation score; an instructor may want to
-            review.</strong> This is a prompt for a conversation, not a judgement. Nerves, accents and
-            speech-to-text mistakes can all lower an explanation score. <Badge feature="reviewFlag" />
-          </p>
-        </section>
-      )}
-
       <h2>Your three answers</h2>
       {report.questions.map((q) => (
         <QuestionCard key={q.index} q={q} />

@@ -76,6 +76,42 @@ async function ready(onComplete = vi.fn()) {
   return { ...view, onComplete, button }
 }
 
+describe('Recorder auto start', () => {
+  it('starts by itself with no button once the hold is released, and reports the start', async () => {
+    const onStarted = vi.fn()
+    const onVideoReady = vi.fn()
+    const view = render(
+      <Recorder maxSeconds={40} onComplete={vi.fn()} autoStart hold onStarted={onStarted} onVideoReady={onVideoReady} />,
+    )
+    await screen.findByText(/timer starts by itself/i)
+    expect(screen.queryByRole('button', { name: /start answering/i })).toBeNull()
+    expect(FakeRecorder.instances).toHaveLength(0) // held: the question is still being revealed
+    expect(onVideoReady).toHaveBeenCalledTimes(1)
+    expect(onVideoReady.mock.calls[0][0]).toBeInstanceOf(HTMLVideoElement)
+
+    view.rerender(<Recorder maxSeconds={40} onComplete={vi.fn()} autoStart hold={false} onStarted={onStarted} onVideoReady={onVideoReady} />)
+    expect(await screen.findByRole('button', { name: /stop and submit/i })).toBeInTheDocument()
+    expect(FakeRecorder.instances).toHaveLength(1)
+    expect(onStarted).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: /start answering/i })).toBeNull()
+  })
+
+  it('offers a manual button if the automatic start fails, so the question is not lost', async () => {
+    vi.stubGlobal('MediaRecorder', class { constructor() { throw new Error('nope') } })
+    render(<Recorder maxSeconds={40} onComplete={vi.fn()} autoStart />)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not start by itself/i)
+    expect(screen.getByRole('button', { name: /start answering/i })).toBeInTheDocument()
+  })
+
+  it('reports no video when there is no camera', async () => {
+    getUserMedia.mockRejectedValueOnce(new DOMException('x', 'NotFoundError')).mockResolvedValueOnce(new FakeMediaStream([mic]))
+    const onVideoReady = vi.fn()
+    render(<Recorder maxSeconds={40} onComplete={vi.fn()} onVideoReady={onVideoReady} />)
+    await screen.findByRole('button', { name: /start answering/i })
+    expect(onVideoReady).toHaveBeenCalledWith(null)
+  })
+})
+
 describe('Recorder', () => {
   it('stops by itself at 40 seconds', async () => {
     const { onComplete, button } = await ready()

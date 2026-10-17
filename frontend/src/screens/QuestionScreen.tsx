@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, getQuestion, submitAnswer } from '../api/client'
 import type { AnswerResult, QuestionPublic } from '../api/types'
+import AutoAdvance from '../components/AutoAdvance'
 import Badge from '../components/Badge'
+import GazeDebugOverlay from '../components/GazeDebugOverlay'
+import { useAppConfig } from '../demoMode'
+import { LookAwayMonitor, createTracker, type LookawayPayload } from '../lookaway'
 import Recorder from '../Recorder'
+import { AUTO_ADVANCE_MS } from '../timing'
+import { useWordReveal } from '../useWordReveal'
 
 interface QuestionScreenProps {
   sessionId: string
@@ -37,6 +43,12 @@ export default function QuestionScreen({
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [attempt, setAttempt] = useState(0)
   const blobRef = useRef<Blob | null>(null)
+  const lookRef = useRef<LookawayPayload | undefined>(undefined)
+  const config = useAppConfig()
+  const [monitor] = useState(() => new LookAwayMonitor(createTracker(config.gaze_tracking)))
+  const reveal = useWordReveal(question?.text ?? null)
+
+  useEffect(() => () => monitor.dispose(), [monitor])
 
   // Asking for the question starts the server's timer for it.
   useEffect(() => {
@@ -60,7 +72,7 @@ export default function QuestionScreen({
   const upload = useCallback(
     (blob: Blob) => {
       setPhase({ kind: 'uploading' })
-      submitAnswer(sessionId, index, blob)
+      submitAnswer(sessionId, index, blob, lookRef.current)
         .then((result) => {
           blobRef.current = null
           onAnswered(index, result.transcript)
@@ -87,10 +99,12 @@ export default function QuestionScreen({
 
   const handleComplete = useCallback(
     (blob: Blob) => {
+      monitor.halt()
       blobRef.current = blob
+      lookRef.current = monitor.payload() // counts and times only
       upload(blob)
     },
-    [upload],
+    [monitor, upload],
   )
 
   const last = index >= total
@@ -121,7 +135,17 @@ export default function QuestionScreen({
 
       {question && (
         <section className="card question" aria-labelledby="question-text">
-          <h1 id="question-text" className="h2">{question.text}</h1>
+          <h1 id="question-text" className="h2">
+            {/* Screen readers get the whole question at once; the words below appear one by one. */}
+            <span className="sr-only">{question.text}</span>
+            <span aria-hidden="true">
+              {reveal.words.map((word, i) => (
+                <span key={i} className={i < reveal.shown ? 'word on' : 'word'}>
+                  {word}{' '}
+                </span>
+              ))}
+            </span>
+          </h1>
           <p className="muted">
             You have {question.max_seconds} seconds. Answer in plain words; you do not need to read
             code aloud. <Badge feature="spokenAnswers" withLabel />
@@ -129,7 +153,17 @@ export default function QuestionScreen({
         </section>
       )}
 
-      {answering && <Recorder maxSeconds={question.max_seconds} onComplete={handleComplete} />}
+      {answering && (
+        <Recorder
+          maxSeconds={question.max_seconds}
+          onComplete={handleComplete}
+          autoStart
+          hold={!reveal.done}
+          onStarted={() => monitor.beginCounting()}
+          onVideoReady={(video) => void monitor.attach(video)}
+        />
+      )}
+      {config.debug_borders && <GazeDebugOverlay monitor={monitor} />}
 
       {phase.kind === 'uploading' && (
         <p className="muted" role="status" aria-busy="true">Transcribing your answer…</p>
@@ -162,9 +196,12 @@ export default function QuestionScreen({
               This answer came in after the time limit, so your instructor will see it marked late.
             </p>
           )}
-          <button type="button" className="primary" onClick={onNext}>
-            {last ? 'See my report' : 'Next question'}
-          </button>
+          <AutoAdvance
+            ms={AUTO_ADVANCE_MS}
+            nextLabel={last ? 'See my report' : 'Next question'}
+            whatLabel={last ? 'Your report' : 'Next question'}
+            onNext={onNext}
+          />
         </section>
       )}
     </main>

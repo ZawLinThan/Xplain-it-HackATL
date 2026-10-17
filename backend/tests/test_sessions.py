@@ -50,6 +50,6 @@ def test_non_numeric_question_is_an_error_shape(client, llm):
 
 
 def test_config_reports_demo_mode(client, monkeypatch):
-    assert client.get("/api/v1/config").json() == {"demo_mode": False}
+    assert client.get("/api/v1/config").json()["demo_mode"] is False
     monkeypatch.setenv("DEMO_MODE", "1")
-    assert client.get("/api/v1/config").json() == {"demo_mode": True}
+    assert client.get("/api/v1/config").json()["demo_mode"] is True

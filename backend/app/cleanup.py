@@ -4,6 +4,7 @@ Run from backend/:  python -m app.cleanup
 """
 
 import os
+import shutil
 
 from . import config, db
 
@@ -19,6 +20,11 @@ def purge() -> tuple[int, int]:
             removed += 1
         except OSError:
             pass
+    for upload_id in db.purge_old_uploads(config.session_ttl_hours()):
+        target = config.upload_dir() / upload_id
+        if target.is_dir():
+            shutil.rmtree(target, ignore_errors=True)
+            removed += 1
     return before - _count(), removed
 
 

@@ -1,14 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
+import { ApiError, uploadFiles } from '../api/client'
 import { MediaDenied, openMedia, stopStream } from '../api/media'
 import Badge from '../components/Badge'
+import FileDrop from '../components/FileDrop'
+import { useAppConfig } from '../demoMode'
+import { preloadTracker } from '../lookaway'
 
 interface StartScreenProps {
   /** Message from a failed attempt (backend down, expired session, ...). */
   error: string | null
-  onStart: () => void
+  /** uploadId is set when the student's own files were uploaded; otherwise the sample quiz is used. */
+  onStart: (uploadId?: string) => void
 }
 
 type Check = 'idle' | 'checking' | 'ok' | 'denied'
+type Upload =
+  | { kind: 'none' }
+  | { kind: 'uploading' }
+  | { kind: 'ready'; uploadId: string; note: string }
+  | { kind: 'failed'; message: string }
 
 export default function StartScreen({ error, onStart }: StartScreenProps) {
   const [check, setCheck] = useState<Check>('idle')
@@ -18,6 +28,48 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
   const [typedInfo, setTypedInfo] = useState(false)
   const streamRef = useRef<MediaStream | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const config = useAppConfig()
+  const [useSample, setUseSample] = useState(true)
+  const [questionsFile, setQuestionsFile] = useState<File | null>(null)
+  const [answersFile, setAnswersFile] = useState<File | null>(null)
+  const [fileErrors, setFileErrors] = useState<{ questions: string | null; answers: string | null }>({
+    questions: null,
+    answers: null,
+  })
+  const [upload, setUpload] = useState<Upload>({ kind: 'none' })
+
+  // Warm up the look-away model while the student reads this screen.
+  useEffect(() => preloadTracker(config.gaze_tracking), [config.gaze_tracking])
+
+  // Upload as soon as both files are chosen, so a problem shows up before Start.
+  useEffect(() => {
+    if (useSample || !questionsFile || !answersFile) return
+    let alive = true
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUpload({ kind: 'uploading' })
+    uploadFiles(questionsFile, answersFile)
+      .then((r) => alive && setUpload({ kind: 'ready', uploadId: r.upload_id, note: r.note }))
+      .catch((e: unknown) => {
+        if (!alive) return
+        setUpload({
+          kind: 'failed',
+          message: e instanceof ApiError || e instanceof Error ? e.message : 'The upload failed.',
+        })
+      })
+    return () => {
+      alive = false
+    }
+  }, [useSample, questionsFile, answersFile])
+
+  function choose(which: 'questions' | 'answers', file: File | null) {
+    setFileErrors((e) => ({ ...e, [which]: null }))
+    setUpload({ kind: 'none' })
+    if (which === 'questions') setQuestionsFile(file)
+    else setAnswersFile(file)
+  }
+  function reject(which: 'questions' | 'answers', message: string) {
+    setFileErrors((e) => ({ ...e, [which]: message }))
+  }
 
   // Release the camera when this screen goes away.
   useEffect(() => () => stopStream(streamRef.current), [])
@@ -43,7 +95,8 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
     }
   }
 
-  const ready = check === 'ok' && consent
+  const filesReady = useSample || upload.kind === 'ready'
+  const ready = check === 'ok' && consent && filesReady
 
   return (
     <main className="screen">
@@ -64,23 +117,58 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
 
       <section className="card" aria-labelledby="sample-title">
         <h2 id="sample-title">The assessment</h2>
-        <p>
-          This demo uses one sample quiz that is already loaded: two small Python functions.{' '}
-          <Badge feature="preloadedSample" withLabel />
-        </p>
-        <p>
+        <label className="check">
+          <input type="checkbox" checked={useSample} onChange={(e) => setUseSample(e.target.checked)} />
+          <span>
+            Use the sample quiz instead: two small Python functions, already loaded.{' '}
+            <Badge feature="preloadedSample" withLabel />
+          </span>
+        </label>
+        <p className="muted">
           Its code score is preset rather than run live. <Badge feature="problemScore" withLabel />
         </p>
-        <p>
-          Uploading your own file comes later. <Badge feature="fileUpload" withLabel />
-        </p>
+        {!useSample && (
+          <div className="uploads">
+            <p>
+              Upload your quiz questions and the answers you gave. Text files are read to write your
+              questions. <Badge feature="fileUpload" withLabel />
+            </p>
+            <FileDrop
+              label="Assessment questions"
+              file={questionsFile}
+              error={fileErrors.questions}
+              onChange={(f) => choose('questions', f)}
+              onReject={(m) => reject('questions', m)}
+            />
+            <FileDrop
+              label="Your answers"
+              file={answersFile}
+              error={fileErrors.answers}
+              onChange={(f) => choose('answers', f)}
+              onReject={(m) => reject('answers', m)}
+            />
+            {upload.kind === 'uploading' && <p className="muted" role="status">Uploading your files…</p>}
+            {upload.kind === 'ready' && <p className="ok" role="status">{upload.note}</p>}
+            {upload.kind === 'failed' && (
+              <p role="alert" className="error">
+                {upload.message}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="card" aria-labelledby="privacy-title">
         <h2 id="privacy-title">What is recorded, and why</h2>
         <ul>
           <li>Your microphone records each answer. It is turned into text, then the audio is deleted.</li>
-          <li>Your camera shows a live preview so you can see yourself. It is not analysed.</li>
+          <li>
+            Your camera shows a live preview so you can see yourself. While you answer, your browser
+            estimates which way your head and eyes point and keeps a count of how often you look away
+            from the screen. Nothing from the camera leaves your device except that count and its
+            times. It never changes your score. Your instructor may look at it.{' '}
+            <Badge feature="lookAway" />
+          </li>
           <li>Your instructor sees your transcript and score. A low score is a reason to talk to you, not proof of anything.</li>
         </ul>
       </section>
@@ -147,12 +235,16 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
       </section>
 
       <div className="actions">
-        <button type="button" className="primary" disabled={!ready} onClick={onStart}>
+        <button type="button" className="primary" disabled={!ready} onClick={() => onStart(useSample || upload.kind !== 'ready' ? undefined : upload.uploadId)}>
           Start
         </button>
         {!ready && (
           <p className="muted">
-            {check !== 'ok' ? 'Check your devices first.' : 'Tick the consent box to continue.'}
+            {check !== 'ok'
+              ? 'Check your devices first.'
+              : !consent
+                ? 'Tick the consent box to continue.'
+                : 'Add both files, or use the sample quiz.'}
           </p>
         )}
       </div>

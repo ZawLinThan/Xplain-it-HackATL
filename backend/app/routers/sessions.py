@@ -18,9 +18,11 @@ from ..schemas import (
     TOTAL_QUESTIONS,
     AnswerResult,
     AppConfig,
+    LookawayIn,
     QuestionPublic,
     Report,
     SessionCreated,
+    SessionStart,
 )
 from ..transcribe import (
     AudioError,
@@ -56,17 +58,35 @@ def _require_question(session_id: str, n: int):
 @router.get("/config", response_model=AppConfig, tags=["config"])
 def get_config() -> AppConfig:
     """Lets the front end label canned (Simulated) output honestly in demo mode."""
-    return AppConfig(demo_mode=config.demo_mode())
+    return AppConfig(
+        demo_mode=config.demo_mode(),
+        gaze_tracking=config.gaze_tracking(),
+        debug_borders=config.debug_borders(),
+    )
 
 
 @router.post("/sessions", response_model=SessionCreated, status_code=201)
-def create_session(llm: LLMProvider = Depends(get_llm)) -> SessionCreated:
-    """Start a session from the preloaded sample assessment and write the three questions."""
+def create_session(
+    body: SessionStart | None = None, llm: LLMProvider = Depends(get_llm)
+) -> SessionCreated:
+    """Start a session and write the three questions.
+
+    Uses the preloaded sample assessment, or the student's uploaded text files when an
+    `upload_id` is given and the files were plain text. The problem score P is always the preset
+    one in this demo: no code is run.
+    """
     assessment = service.load_assessment()
-    questions, source = service.make_questions(llm, assessment["extracted_text"])
-    session_id = db.create_session(assessment["title"], questions)
+    title, text, used_upload = assessment["title"], assessment["extracted_text"], False
+    if body is not None and body.upload_id:
+        upload = db.get_upload(body.upload_id)
+        if upload is None:
+            raise AppError(404, "upload_not_found", "No such upload.")
+        if upload["text_used"]:
+            title, text, used_upload = "Your uploaded assessment", upload["extracted_text"], True
+    questions, source = service.make_questions(llm, text)
+    session_id = db.create_session(title, questions)
     log.info("session %s created with %s questions", session_id, source)
-    return SessionCreated(session_id=session_id, title=assessment["title"])
+    return SessionCreated(session_id=session_id, title=title, used_upload=used_upload)
 
 
 @router.get("/sessions/{session_id}/questions/{n}", response_model=QuestionPublic)
@@ -92,6 +112,23 @@ def _save_upload(upload: UploadFile, dest: Path) -> None:
         raise AppError(422, "bad_audio", "The recording is empty.")
 
 
+def _save_lookaway(session_id: str, n: int, raw: str | None) -> None:
+    """Store the browser's look-away events. Never fails the answer: tracking is optional.
+
+    Only counts and times are accepted. Bad or missing data is stored as not tracked.
+    """
+    tracked, events = False, []
+    if raw:
+        try:
+            parsed = LookawayIn.model_validate_json(raw)
+            tracked, events = parsed.tracked, [e.model_dump() for e in parsed.events]
+        except ValueError:
+            log.warning("ignored malformed look-away data for %s/%s", session_id, n)
+    if not config.gaze_tracking():
+        tracked, events = False, []
+    db.save_lookaway(session_id, n, tracked, events)
+
+
 @router.post(
     "/sessions/{session_id}/questions/{n}/answer", response_model=AnswerResult, status_code=201
 )
@@ -101,6 +138,7 @@ def submit_answer(
     audio: UploadFile = File(...),
     consent: bool = Form(False),
     video: UploadFile | None = File(None),
+    lookaway: str | None = Form(None),
     stt: Transcriber = Depends(get_stt),
 ) -> AnswerResult:
     _require_session(session_id)
@@ -161,6 +199,7 @@ def submit_answer(
     saved = db.insert_answer(session_id, n, transcript, seconds, late, audio_path, video_path, flagged)
     if not saved:
         raise AppError(409, "already_answered", "This question already has an answer.")
+    _save_lookaway(session_id, n, lookaway)
     return AnswerResult(transcript=transcript, seconds_used=seconds, late=late)
 
 

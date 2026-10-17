@@ -1,5 +1,5 @@
 from app import db
-from helpers import answer, answer_all, good_questions, grades, new_session, set_started
+from helpers import answer, answer_all, good_questions, grades, new_session, professor_session, set_started
 
 
 def finished(client, llm, stt, transcripts=("one", "two", "three")):
@@ -15,7 +15,8 @@ def test_worked_example_through_the_api(client, llm, stt):
     assert report["problem_score"] == 0.7333
     assert report["explanation_score"] == 0.6667
     assert report["final_score"] == 70.7
-    assert report["review_flag"] is False
+    assert "review_flag" not in report
+    assert professor_session(client, sid)["review_flag"] is False
     assert report["partial"] is False
     assert report["weights"] == {"problem": 0.6, "explanation": 0.4}
     assert [q["score"] for q in report["questions"]] == [5, 3, 2]
@@ -26,7 +27,8 @@ def test_review_flag_for_big_gap(client, llm, stt):
     sid = finished(client, llm, stt)
     llm.push(grades(1, 1, 0))
     report = client.get(f"/api/v1/sessions/{sid}/report").json()
-    assert report["final_score"] == 49.3 and report["review_flag"] is True
+    assert report["final_score"] == 49.3
+    assert professor_session(client, sid)["review_flag"] is True
 
 
 def test_exactly_one_llm_call_for_grading(client, llm, stt):
@@ -93,7 +95,7 @@ def test_invalid_json_twice_gives_partial_then_recovers(client, llm, stt):
     partial = client.get(f"/api/v1/sessions/{sid}/report").json()
     assert partial["partial"] is True
     assert partial["final_score"] is None and partial["explanation_score"] is None
-    assert partial["review_flag"] is None
+    assert "review_flag" not in partial
     assert all(q["score"] is None for q in partial["questions"])
     llm.push(grades(3, 3, 3))
     full = client.get(f"/api/v1/sessions/{sid}/report").json()

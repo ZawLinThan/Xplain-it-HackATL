@@ -16,7 +16,26 @@ npm run dev          # http://localhost:5173, expects the backend on VITE_API_UR
 | --- | --- |
 | `VITE_API_URL` | Backend address (default http://localhost:8000) |
 | `VITE_MOCK=1` | Canned data from `src/api/mocks`, no backend. Try `?mock=weak` or `?mock=partial` |
+| `VITE_FAKE_GAZE=<n>` | Scripted look-aways (n per answer) for demos and tests; no camera model needed |
 | `VITE_MOCK_FAST=1` | Makes mock mode instant (used by tests) |
+
+## Look-away detector
+
+The detector runs in the browser with MediaPipe Face Landmarker. Fetch the model and wasm files once
+(they are not committed; about 45 MB):
+
+```sh
+npm run setup-gaze
+```
+
+Without them (or with no camera) the detector reports "not tracked" and the quiz still works. The
+gaze estimate uses fixed gains in `src/lookaway/gaze.ts`; tune them with `DEBUG_BORDERS=1` on the
+backend, which draws the red borders and a gaze dot, on the real webcam you will demo with.
+
+## Instructor view
+
+`/?view=professor` asks for the instructor token (`PROFESSOR_TOKEN` on the backend, `demo` in demo
+mode). It lists sessions with flags and shows each answer's transcript and look-away timeline.
 
 ## Scripts
 
@@ -35,6 +54,7 @@ Never hand-write API types; run the backend's `make gen-openapi`, then `npm run 
   `performance.now()`, so a throttled background tab cannot run past 40 s.
 - `src/features.ts` lists what is Working, Simulated or Planned. The `Badge` component reads it,
   and shows Simulated automatically when the backend reports `demo_mode`.
+- `src/lookaway/counter.ts` is pure (no DOM) and holds the border rules; `gaze.ts` turns face landmarks into a screen point.
 - `/?dev=recorder` opens a bare recorder page for testing.
 
 ## Browser end-to-end check
