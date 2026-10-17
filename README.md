@@ -1,4 +1,4 @@
-# Explain-It (vDemo)
+# Xplain-it (vDemo)
 
 Checks whether a student understands the code they submitted. A preloaded quiz (its questions and
 the student's answers) goes to an LLM, which writes exactly **three** questions. The student

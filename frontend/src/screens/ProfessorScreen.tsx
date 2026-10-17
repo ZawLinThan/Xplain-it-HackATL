@@ -32,7 +32,7 @@ function TokenForm({ message, onToken }: { message: string; onToken: (token: str
     <main className="screen instructor-screen">
       <PageBrand />
       <header>
-        <p className="eyebrow">Explain-It · instructor</p>
+        <p className="eyebrow">Xplain-it · instructor</p>
         <h1>Instructor view</h1>
       </header>
       <form
@@ -124,7 +124,7 @@ function Detail({ token, id, onBack, onAuth }: { token: string; id: string; onBa
       {data && (
         <>
           <header>
-            <p className="eyebrow">Explain-It · instructor</p>
+            <p className="eyebrow">Xplain-it · instructor</p>
             <h1>{data.title}</h1>
             <p className="muted">{new Date(data.created_at * 1000).toLocaleString()}</p>
           </header>
@@ -229,7 +229,7 @@ export default function ProfessorScreen() {
     <main className="screen wide instructor-screen">
       <PageBrand />
       <header>
-        <p className="eyebrow">Explain-It · instructor</p>
+        <p className="eyebrow">Xplain-it · instructor</p>
         <h1>Recent sessions</h1>
       </header>
       {error && <p role="alert" className="error">{error}</p>}

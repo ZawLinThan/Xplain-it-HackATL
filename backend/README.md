@@ -1,6 +1,6 @@
 # vDemo Backend
 
-Python FastAPI backend for Explain-It. Requires Python 3.10+. `ffmpeg` and `ffprobe` must be on
+Python FastAPI backend for Xplain-it. Requires Python 3.10+. `ffmpeg` and `ffprobe` must be on
 the PATH for real recordings (they convert audio and read its true length); not needed for
 `DEMO_MODE=1` or the tests.
 

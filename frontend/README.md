@@ -1,4 +1,4 @@
-# Explain-It front end
+# Xplain-it front end
 
 Vite 8, React 19, TypeScript 6. One screen at a time: start (device check and consent), three
 questions, report. No router; the flow is a reducer in `src/flow.ts`, saved to `sessionStorage`

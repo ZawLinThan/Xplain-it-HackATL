@@ -1,6 +1,6 @@
-# Explain-It (vDemo) — project spec
+# Xplain-it (vDemo) — project spec
 
-Explain-It checks whether students understand the code they submitted. In this demo a
+Xplain-it checks whether students understand the code they submitted. In this demo a
 preloaded extracted text (the assessment's questions plus the student's answers) is sent to an
 LLM, which writes exactly three questions and expected answers. The student answers each
 question out loud on camera, one at a time, 40 seconds maximum. The audio is transcribed, an

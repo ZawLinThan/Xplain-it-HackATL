@@ -92,7 +92,7 @@ describe('App flow (mock mode)', () => {
 
   it('resumes at the first unanswered question after a refresh', async () => {
     sessionStorage.setItem(
-      'explain-it-session',
+      'Xplain-it-session',
       JSON.stringify({ sessionId: 's1', title: 'Quiz', total: 3, transcripts: { 1: 'a', 2: 'b' } }),
     )
     await renderApp()
@@ -102,7 +102,7 @@ describe('App flow (mock mode)', () => {
 
   it('resumes straight to the report when everything was answered', async () => {
     sessionStorage.setItem(
-      'explain-it-session',
+      'Xplain-it-session',
       JSON.stringify({ sessionId: 's1', title: 'Quiz', total: 3, transcripts: { 1: 'a', 2: 'b', 3: 'c' } }),
     )
     await renderApp()

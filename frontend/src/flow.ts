@@ -82,7 +82,7 @@ export function reducer(state: FlowState, action: FlowAction): FlowState {
 
 // ------------------------------------------------------------- refresh support
 
-const KEY = 'explain-it-session'
+const KEY = 'Xplain-it-session'
 
 export interface SavedSession {
   sessionId: string

@@ -5,7 +5,7 @@ import type { NeuralPhase, QuestionVisual } from '../visuals/neural/sceneTypes'
 import { useReducedMotion } from '../visuals/useReducedMotion'
 
 export function Brand() {
-  return <span className="brand"><span className="brand-icon" aria-hidden="true"><i /><i /><i /></span>Explain-It<span className="brand-period">.</span></span>
+  return <span className="brand"><img className="brand-logo" src="/favicon.png" alt="" width="36" height="36" />Xplain-it</span>
 }
 
 export function PageBrand() {
@@ -23,7 +23,7 @@ interface StageBackdropProps {
   levelSource?: LevelSource
 }
 
-export function StageBackdrop({ phase = 'ready', seed = 'explain-it', questions = NO_QUESTIONS, activeQuestionId, levelSource }: StageBackdropProps) {
+export function StageBackdrop({ phase = 'ready', seed = 'Xplain-it', questions = NO_QUESTIONS, activeQuestionId, levelSource }: StageBackdropProps) {
   const prefersReduced = useReducedMotion()
   const [reduce, setReduce] = useState(false)
   return <>

@@ -151,7 +151,7 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
           </div>
           {/* Idle decoration only: no device is opened to animate it, and it rests while setup is open. */}
           <div className="hero-sculpture" data-paused={setupOpen} aria-hidden="true">
-            <NeuralScene mode="landing" phase="idle" seed="explain-it" questions={NO_HUBS} reducedMotion={reducedMotion} paused={setupOpen} />
+            <NeuralScene mode="landing" phase="idle" seed="Xplain-it" questions={NO_HUBS} reducedMotion={reducedMotion} paused={setupOpen} />
           </div>
         </section>
       </div>
