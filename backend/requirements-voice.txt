@@ -1,0 +1,7 @@
+# Isolated Python 3.13 worker; the normal backend may keep its current interpreter.
+torch==2.8.0
+torchaudio==2.8.0
+speechbrain==1.0.3
+huggingface-hub==0.25.2
+webrtcvad-wheels>=2.0.14,<3
+soundfile>=0.12,<1

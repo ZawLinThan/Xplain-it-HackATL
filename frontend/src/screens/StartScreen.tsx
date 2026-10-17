@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, uploadFiles } from '../api/client'
 import { MediaDenied, openMedia, stopStream } from '../api/media'
 import { Brand, SetupDialog } from '../components/Presentation'
+import VoiceCalibration from '../components/VoiceCalibration'
+import { setVoiceEnrollment } from '../voice/profile'
 import GazeCalibration from '../components/GazeCalibration'
 import { setCalibration } from '../lookaway/calibration'
 import Badge from '../components/Badge'
@@ -28,6 +30,9 @@ type Upload =
   | { kind: 'failed'; message: string }
 
 export default function StartScreen({ error, onStart, screenReady = true, screenControl }: StartScreenProps) {
+  const [voiceReady, setVoiceReady] = useState(false)
+  const [voiceAvailable, setVoiceAvailable] = useState(false)
+  const voiceReadiness = useCallback((ready: boolean, available: boolean) => { setVoiceReady(ready); setVoiceAvailable(available) }, [])
   const [setupOpen, setSetupOpen] = useState(Boolean(error))
   const [calibrationVideo, setCalibrationVideo] = useState<HTMLVideoElement | null>(null)
   const [calibrated, setCalibrated] = useState(false)
@@ -92,6 +97,8 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
   }, [check, hasCamera])
 
   function closeSetup() {
+    setVoiceEnrollment(null)
+    setVoiceReady(false)
     mediaRequestRef.current++
     stopStream(streamRef.current)
     streamRef.current = null
@@ -103,6 +110,8 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
   async function runCheck() {
     const request = ++mediaRequestRef.current
     setCalibration(null)
+    setVoiceEnrollment(null)
+    setVoiceReady(false)
     setCalibrated(false)
     setCheck('checking')
     setCheckError('')
@@ -121,7 +130,7 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
   }
 
   const filesReady = useSample || upload.kind === 'ready'
-  const ready = check === 'ok' && consent && filesReady && screenReady
+  const ready = check === 'ok' && consent && filesReady && screenReady && (!voiceAvailable || voiceReady)
 
   return (
     <main className="landing-page">
@@ -202,6 +211,7 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
             from the screen. Nothing from the camera leaves your device except that count and its
             times. It never changes your score. Your instructor may look at it.{' '}
           </li>
+          <li>While recording, a voice comparison checks consistency with your calibration. More than 3 seconds of detected mismatch saves an instructor review flag and shows a temporary testing notice. Look-away events and boundary-stay durations, including corners, are logged for your instructor. Short audio chunks are compared on the backend. The voice reference is session-only; the check can be wrong and cannot establish identity. Reminders do not affect your score.</li>
           <li>Your instructor sees your transcript and score. A low score is a reason to talk to you, not proof of anything.</li>
         </ul>
       </section>
@@ -250,6 +260,8 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
         )}
       </section>
 
+      {check === 'ok' && <VoiceCalibration stream={() => streamRef.current} onReadiness={voiceReadiness} />}
+
       {screenControl}
 
       <section className="card" aria-labelledby="consent-title">
@@ -288,7 +300,9 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
               ? 'Check your devices first.'
               : !consent
                 ? 'Tick the consent box to continue.'
-                : 'Add both files, or use the sample quiz.'}
+                : voiceAvailable && !voiceReady
+                  ? 'Calibrate your voice before starting.'
+                  : 'Add both files, or use the sample quiz.'}
           </p>
         )}
       </div>

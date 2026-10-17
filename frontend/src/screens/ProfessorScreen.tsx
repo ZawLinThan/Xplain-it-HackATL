@@ -63,6 +63,7 @@ function Timeline({ q, limit }: { q: ProfessorQuestion; limit: number }) {
       <p>
         <strong>Looked away {look.count} {look.count === 1 ? 'time' : 'times'} (limit {limit})</strong>
         {look.flagged ? ' · Review' : ''}
+        <span className="muted"> · Duration entries {(look.duration_log ?? []).length}</span>
       </p>
       <div className="timeline" role="img" aria-label={`Look-away timeline over ${WINDOW_SECONDS} seconds`}>
         {look.events.map((ev, i) => (
@@ -74,6 +75,7 @@ function Timeline({ q, limit }: { q: ProfessorQuestion; limit: number }) {
           />
         ))}
       </div>
+      <h4>Normal look-away log ({look.count})</h4>
       {look.events.length > 0 && (
         <ul className="muted">
           {look.events.map((ev, i) => (
@@ -83,6 +85,14 @@ function Timeline({ q, limit }: { q: ProfessorQuestion; limit: number }) {
           ))}
         </ul>
       )}
+      {look.events.length === 0 && <p className="muted">No normal look-away events recorded.</p>}
+      <h4>Look-away duration log ({(look.duration_log ?? []).length})</h4>
+      <p className="muted">Continuous boundary visits, including corners, with start times and durations.</p>
+      {(look.duration_log ?? []).length ? <ul className="muted">
+        {(look.duration_log ?? []).map((stay, i) => <li key={i}>
+          {(stay.t_ms / 1000).toFixed(1)} s: {stay.side} · {(stay.duration_ms / 1000).toFixed(1)} s duration
+        </li>)}
+      </ul> : <p className="muted">No look-away durations recorded.</p>}
     </div>
   )
 }
@@ -143,6 +153,11 @@ function Detail({ token, id, onBack, onAuth }: { token: string; id: string; onBa
           {data.questions.map((q) => (
             <article key={q.n} className="card" aria-labelledby={`pq${q.n}`}>
               <h2 id={`pq${q.n}`} className="h3">{q.n}. {q.text}</h2>
+                  {(q.voice_flags ?? []).length > 0 && <section className="voice-review" aria-label="Voice verification flags">
+                    <h3>Voice changed — review flag</h3>
+                    <p>This speaker-consistency check is approximate. Review it with the student; it is not proof of impersonation.</p>
+                    <ul>{(q.voice_flags ?? []).map((flag, i) => <li key={i}>{new Date(flag.created_at * 1000).toLocaleTimeString()} · mismatch for {(flag.duration_ms / 1000).toFixed(1)} s · similarity {flag.similarity?.toFixed(3) ?? 'unavailable'}</li>)}</ul>
+                  </section>}
               {q.answered ? (
                 <>
                   <p className="label">Transcript</p>
@@ -151,6 +166,7 @@ function Detail({ token, id, onBack, onAuth }: { token: string; id: string; onBa
                     Score: {q.score === null ? 'not graded yet' : `${q.score} / 5`}
                     {q.late ? ' · answered late' : ''} · {q.seconds_used} s
                   </p>
+
                   <Timeline q={q} limit={data.lookaway_threshold} />
                 </>
               ) : (

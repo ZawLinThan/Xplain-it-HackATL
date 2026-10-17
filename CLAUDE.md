@@ -25,7 +25,7 @@ parsed, and the sample text in `backend/app/data/assessment.json` is used instea
 - The 40-second cap is enforced in the browser, on the server by reading the real audio
   duration, and by a server-side question start time.
 - The LLM and speech-to-text sit behind provider interfaces so a free service can be swapped.
-- No emotion, identity or face-recognition analysis. The only camera signal is the on-device
+- No emotion or face-recognition analysis. Session-only speaker consistency comparison is explicitly authorized; it does not establish a named identity. The only camera signal is the on-device
   look-away count (head and eye direction while the student answers). No frame, image or video
   leaves the browser, only `{tracked, events:[{t_ms, side}]}`. The count is a prompt for a human,
   is shown only in the instructor view, and is never an input to any score. Not tracked is never
@@ -69,3 +69,17 @@ The answer endpoint also takes an optional form field `lookaway` (JSON). It neve
 ## Commands
 
 `make dev-backend`, `make dev-frontend`, `make test`, `make gen-openapi`, `make gen-types`.
+
+
+Voice calibration replaces the mouth/microphone activity heuristic. With explicit consent,
+capture a 15-second reference and compare live speech using ECAPA embeddings. More than
+3 seconds of continuous confident mismatch creates an instructor voice flag, with a temporary
+student testing notice requested by the user. Silence, uncertainty, missing reference, service
+failure and gaps reset the timer. Flags never affect scores or prove identity/cheating.
+References remain in memory only and expire after one hour or completed assessment; only
+flag timestamp, duration and similarity persist. Audio chunks are processed transiently.
+
+Gaze boundaries no longer trigger a student warning. Preserve normal look-away events/counts
+and log all continuous boundary visits, including corners, with start times and durations.
+There is no separate corner-only log. Submit both
+with the answer and expose both to the authenticated professor view; do not use them in scores.

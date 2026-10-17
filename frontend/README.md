@@ -89,3 +89,52 @@ Closing setup releases its camera/microphone preview and requires checking devic
 The assessment's **Reduce motion** control also respects the OS motion preference.
 Presentation tokens and source styles live in `src/styles/`; `migration.css` adapts the
 current feature components. The supplied ZIP's API/controller implementation is not used.
+
+
+## Voice calibration and instructor flags
+
+The mouth movement heuristic is replaced by session-only voice comparison. After checking
+devices, consent and read the calibration passage aloud for 15 seconds, then start. Live
+speech is compared with that reference using SpeechBrain ECAPA. More than 3 seconds of
+continuous confident mismatch creates an instructor flag and displays the temporary testing
+notice: “Your voice appears to have changed and has been flagged for your instructor.”
+Silence, uncertain comparisons, service errors and gaps reset the timer. Three-second rolling
+audio windows and inference add detection latency; this is a review prompt, not identity proof,
+and never changes scores. Microphone quality and noise can affect accuracy.
+
+Install the optional worker from the repository root (Python 3.13):
+
+```sh
+python3.13 -m venv backend/.venv-voice
+backend/.venv-voice/bin/python -m pip install -r backend/requirements-voice.txt
+backend/.venv-voice/bin/python backend/app/voice_worker.py --warmup
+```
+
+The backend starts the worker automatically; no third terminal is needed. Restart the backend
+after setup. Use a single backend process because references are in memory. Without a ready
+worker, setup explains that verification is unavailable and allows an unverified assessment.
+`VOICE_VERIFICATION_ENABLED=0` disables it; `VOICE_PYTHON` overrides the worker interpreter.
+`VOICE_SIMILARITY_THRESHOLD` defaults to 0.25, with a 0.05 uncertainty band above it.
+References are deleted after completion or within a minute of their one-hour expiry, and on
+backend shutdown. Neither embeddings nor comparison audio are saved. Existing answer audio
+submission remains unchanged. Instructor flags persist behind instructor authorization.
+
+
+## Look-away logs and submission prints
+
+The dedicated corner log is removed. Normal look-away events/counts remain unchanged. The
+`duration_log` records each continuous visit to a boundary, including corners, with `t_ms`,
+`duration_ms`, and `side`. Returning to center, changing the dominant boundary side, face loss,
+or a camera gap over 450 ms ends a duration entry. A single sample may produce a zero-duration
+entry; elapsed time without observed frames is never fabricated. Neither log changes grading.
+Debug mode shows the count and latest four entries of each log. The professor detail shows the
+complete event and duration logs, submitted automatically with each answer.
+
+At the end of each answer, open browser Developer Tools → Console and expand
+`[look-away] Question N completed`. It prints the event table, durations (also in seconds),
+POST destination, and exact JSON in the multipart `lookaway` field. A subsequent message
+confirms acceptance or reports that submission is unconfirmed. Mock mode explicitly says
+`not sent`. The backend terminal prints `[look-away] Saved for professor:` with the validated
+stored JSON, so you can compare sent data with saved data. No audio, frames, or transcripts
+are printed by these diagnostics. Old corner-only database rows are left untouched but are
+no longer used as an active log; old sessions have empty general duration logs.

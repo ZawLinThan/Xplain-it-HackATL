@@ -10,6 +10,7 @@ from .errors import AppError
 from .schemas import (
     TOTAL_QUESTIONS,
     LookawayEvent,
+    LookawayDuration,
     ProfessorLookaway,
     ProfessorQuestion,
     ProfessorSession,
@@ -37,6 +38,7 @@ def _lookaway(row, threshold: int) -> ProfessorLookaway:
         count=row["count"],
         flagged=scoring.lookaway_flag(row["count"], threshold),
         events=events,
+        duration_log=[LookawayDuration(**event) for event in json.loads(row["duration_log_json"])],
     )
 
 
@@ -58,6 +60,7 @@ def list_sessions(limit: int) -> ProfessorSessions:
                 completed=len(answers) >= TOTAL_QUESTIONS,
                 final_score=None if saved is None else saved["final_score"],
                 review_flag=bool(saved and saved["review_flag"]),
+                voice_flagged=bool(db.list_voice_flags(s["id"])),
                 lookaway_flagged=scoring.session_flagged(counts, threshold),
                 lookaway_max=worst[0],
                 lookaway_max_question=worst[1] if worst[0] else None,
@@ -91,6 +94,7 @@ def session_detail(session_id: str) -> ProfessorSession:
                 score=a["score"] if a else None,
                 late=bool(a["late"]) if a else False,
                 seconds_used=a["seconds_used"] if a else 0.0,
+                voice_flags=db.list_voice_flags(session_id).get(q["idx"], []),
                 lookaway=_lookaway(look.get(q["idx"]), threshold),
             )
         )

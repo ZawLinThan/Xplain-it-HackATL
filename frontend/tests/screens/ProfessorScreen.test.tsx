@@ -94,3 +94,19 @@ describe('ProfessorScreen', () => {
     await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(4))
   })
 })
+
+
+it('shows both logs with boundary timestamps and durations in professor details', async () => {
+  const id = Object.keys(details)[0]
+  const detail = structuredClone(details[id])
+  detail.questions[0].lookaway = {
+    tracked: true, count: 1, flagged: false, events: [{ t_ms: 1000, side: 'left' }],
+    duration_log: [{ t_ms: 1500, duration_ms: 2300, side: 'left' }],
+  }
+  vi.mocked(getProfessorSession).mockResolvedValue(detail)
+  await signIn()
+  fireEvent.click(within(rowOf(/81\.3/)).getByRole('button', { name: 'Open' }))
+  expect((await screen.findAllByText('Normal look-away log (1)')).length).toBeGreaterThan(0)
+  expect(screen.getByText('Look-away duration log (1)')).toBeInTheDocument()
+  expect(screen.getByText(/1.5 s: left · 2.3 s duration/)).toBeInTheDocument()
+})

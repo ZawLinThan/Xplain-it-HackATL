@@ -72,6 +72,20 @@ CREATE TABLE IF NOT EXISTS lookaways (
     events_json TEXT NOT NULL,
     PRIMARY KEY (session_id, n)
 );
+CREATE TABLE IF NOT EXISTS gaze_duration_logs (
+    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    n INTEGER NOT NULL,
+    events_json TEXT NOT NULL DEFAULT '[]',
+    PRIMARY KEY (session_id, n)
+);
+CREATE TABLE IF NOT EXISTS voice_flags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    n INTEGER NOT NULL,
+    created_at REAL NOT NULL,
+    duration_ms INTEGER NOT NULL,
+    similarity REAL
+);
 CREATE TABLE IF NOT EXISTS llm_cache (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
@@ -306,7 +320,7 @@ def purge_old_uploads(max_age_hours: float) -> list[str]:
 # ------------------------------------------------------------------ look-away
 
 
-def save_lookaway(session_id: str, n: int, tracked: bool, events: list[dict]) -> None:
+def save_lookaway(session_id: str, n: int, tracked: bool, events: list[dict], duration_log: list[dict] | None = None) -> None:
     with connect() as conn:
         conn.execute(
             "INSERT OR REPLACE INTO lookaways (session_id, n, tracked, count, events_json)"
@@ -314,10 +328,19 @@ def save_lookaway(session_id: str, n: int, tracked: bool, events: list[dict]) ->
             (session_id, n, int(tracked), len(events) if tracked else 0, json.dumps(events)),
         )
 
+        conn.execute(
+            "INSERT OR REPLACE INTO gaze_duration_logs (session_id, n, events_json) VALUES (?, ?, ?)",
+            (session_id, n, json.dumps((duration_log or []) if tracked else [])),
+        )
+
 
 def list_lookaways(session_id: str) -> dict[int, sqlite3.Row]:
     with connect() as conn:
-        rows = conn.execute("SELECT * FROM lookaways WHERE session_id = ?", (session_id,)).fetchall()
+        rows = conn.execute(
+            "SELECT l.*, COALESCE(c.events_json, '[]') AS duration_log_json FROM lookaways l "
+            "LEFT JOIN gaze_duration_logs c ON l.session_id = c.session_id AND l.n = c.n "
+            "WHERE l.session_id = ?", (session_id,),
+        ).fetchall()
     return {r["n"]: r for r in rows}
 
 
@@ -367,3 +390,19 @@ def purge_old_sessions(max_age_hours: float) -> list[str]:
                 paths.extend(p for p in (r["audio_path"], r["video_path"]) if p)
             conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
     return paths
+
+
+
+def save_voice_flag(session_id: str, n: int, duration_ms: int, similarity: float | None) -> None:
+    with connect() as conn:
+        conn.execute("INSERT INTO voice_flags (session_id, n, created_at, duration_ms, similarity) VALUES (?, ?, ?, ?, ?)",
+                     (session_id, n, time.time(), duration_ms, similarity))
+
+
+def list_voice_flags(session_id: str) -> dict[int, list[dict]]:
+    with connect() as conn:
+        rows = conn.execute("SELECT n, created_at, duration_ms, similarity FROM voice_flags WHERE session_id = ? ORDER BY created_at", (session_id,)).fetchall()
+    result = {}
+    for row in rows:
+        result.setdefault(row['n'], []).append({key: row[key] for key in ('created_at', 'duration_ms', 'similarity')})
+    return result

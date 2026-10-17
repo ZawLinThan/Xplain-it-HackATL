@@ -121,3 +121,19 @@ describe('api client', () => {
     await expect(getProfessorSession('bad', 's1')).rejects.toMatchObject({ status: 401, code: 'unauthorized' })
   })
 })
+
+
+it('sends the exact printed duration log and confirms successful acceptance', async () => {
+  vi.spyOn(console, 'groupCollapsed').mockImplementation(() => undefined)
+  vi.spyOn(console, 'groupEnd').mockImplementation(() => undefined)
+  vi.spyOn(console, 'table').mockImplementation(() => undefined)
+  const printed = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+  const confirmed = vi.spyOn(console, 'info').mockImplementation(() => undefined)
+  const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(() => respond(201, { transcript: 'a', seconds_used: 4, late: false }))
+  const payload = { tracked: true, events: [{ t_ms: 0, side: 'left' as const }], duration_log: [{ t_ms: 0, duration_ms: 2300, side: 'left' as const }] }
+  await submitAnswer('s1', 3, new Blob(['audio']), payload)
+  const form = fetch.mock.calls[0][1]?.body as FormData
+  expect(form.get('lookaway')).toBe(JSON.stringify(payload))
+  expect(printed).toHaveBeenCalledWith('lookaway form-field JSON:', form.get('lookaway'))
+  expect(confirmed).toHaveBeenCalledWith(expect.stringContaining('server accepted the answer'))
+})

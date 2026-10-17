@@ -7,6 +7,7 @@ export function reasonsFor(row: ProfessorSessionRow, threshold: number): string[
     const q = row.lookaway_max_question ? ` in question ${row.lookaway_max_question}` : ''
     out.push(`Looked away ${row.lookaway_max} times${q} (limit ${threshold})`)
   }
+  if (row.voice_flagged) out.push('Voice changed: speaker-verification review flag')
   if (row.review_flag) out.push('Answers weaker than the code score')
   return out
 }

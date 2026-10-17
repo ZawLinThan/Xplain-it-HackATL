@@ -1,5 +1,7 @@
 """FastAPI application entry point."""
 
+import asyncio
+import time
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -8,10 +10,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
-from . import db
+from . import db, voice as voice_service
 from .errors import install_handlers
 from .schemas import LookawayIn
-from .routers import professor, sessions, uploads
+from .routers import professor, sessions, uploads, voice
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logging.getLogger("httpx").setLevel(logging.WARNING)  # request URLs are noise
@@ -20,7 +22,25 @@ logging.getLogger("httpx").setLevel(logging.WARNING)  # request URLs are noise
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     db.init_db()
-    yield
+    async def expire_voice_references():
+        while True:
+            await asyncio.sleep(60)
+            with voice_service.state_lock:
+                voice_service.expire(time.monotonic())
+
+    cleanup = asyncio.create_task(expire_voice_references())
+    try:
+        yield
+    finally:
+        cleanup.cancel()
+        try:
+            await cleanup
+        except asyncio.CancelledError:
+            pass
+        voice_service.engine.close()
+        with voice_service.state_lock:
+            voice_service.references.clear()
+            voice_service.checks.clear()
 
 
 app = FastAPI(title="vDemo API", version="0.1.0", lifespan=lifespan)
@@ -58,6 +78,7 @@ app.openapi = custom_openapi  # type: ignore[method-assign]
 app.include_router(sessions.router)
 app.include_router(uploads.router)
 app.include_router(professor.router)
+app.include_router(voice.router)
 
 
 @app.get("/api/v1/health", tags=["health"])

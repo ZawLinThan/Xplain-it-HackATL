@@ -48,6 +48,7 @@ class UploadCreated(BaseModel):
 
 
 class SessionStart(BaseModel):
+    voice_enrollment_id: str | None = None
     upload_id: str | None = Field(default=None, description="From POST /uploads; omit for the sample quiz")
 
 
@@ -105,11 +106,18 @@ class LookawayEvent(BaseModel):
     side: Literal["left", "right", "top", "bottom", "lost"]
 
 
+class LookawayDuration(BaseModel):
+    t_ms: int = Field(ge=0, le=60000)
+    duration_ms: int = Field(ge=0, le=60000)
+    side: Literal["left", "right", "top", "bottom"]
+
+
 class LookawayIn(BaseModel):
     """What the browser sends with an answer: counts and times only, never images."""
 
     tracked: bool
     events: list[LookawayEvent] = Field(default_factory=list, max_length=200)
+    duration_log: list[LookawayDuration] = Field(default_factory=list, max_length=200)
 
 
 class ProfessorLookaway(BaseModel):
@@ -117,9 +125,31 @@ class ProfessorLookaway(BaseModel):
     count: int
     flagged: bool
     events: list[LookawayEvent]
+    duration_log: list[LookawayDuration] = Field(default_factory=list)
+
+
+class VoiceStatus(BaseModel):
+    available: bool
+
+
+class VoiceEnrollment(BaseModel):
+    enrollment_id: str
+
+
+class VoiceCheckResult(BaseModel):
+    status: Literal["match", "mismatch", "uncertain", "insufficient_speech", "unavailable"]
+    flagged: bool
+    similarity: float | None = None
+
+
+class VoiceFlag(BaseModel):
+    created_at: float
+    duration_ms: int
+    similarity: float | None = None
 
 
 class ProfessorQuestion(BaseModel):
+    voice_flags: list[VoiceFlag] = Field(default_factory=list)
     n: int
     text: str
     answered: bool
@@ -131,6 +161,7 @@ class ProfessorQuestion(BaseModel):
 
 
 class ProfessorSessionRow(BaseModel):
+    voice_flagged: bool = False
     session_id: str
     created_at: float
     title: str

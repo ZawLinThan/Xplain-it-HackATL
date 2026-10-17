@@ -7,6 +7,7 @@ import Badge from '../components/Badge'
 import GazeDebugOverlay from '../components/GazeDebugOverlay'
 import { useAppConfig } from '../demoMode'
 import { LookAwayMonitor, createTracker, type LookawayPayload } from '../lookaway'
+import { useVoiceVerification } from '../voice/useVoiceVerification'
 import { createLevelChannel } from '../visuals/audioLevel'
 import Recorder from '../Recorder'
 import { AUTO_ADVANCE_MS } from '../timing'
@@ -42,6 +43,7 @@ export default function QuestionScreen({
   onNext,
   onSessionLost,
 }: QuestionScreenProps) {
+  const voice = useVoiceVerification(sessionId, index)
   const [levels] = useState(createLevelChannel)
   const [question, setQuestion] = useState<QuestionPublic | null>(null)
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
@@ -177,9 +179,14 @@ export default function QuestionScreen({
           hold={!reveal.done || !speech.done}
           onStarted={() => monitor.beginCounting()}
           onLevel={levels.publish}
+          onRecordingStream={voice.begin}
           onVideoReady={(video) => void monitor.attach(video)}
         />
       )}
+      <aside className={`live-reminders${voice.flagged ? ' has-warning' : ''}`} aria-label="Voice verification">
+        {voice.flagged && <p className="live-reminder" role="alert">Your voice appears to have changed and has been flagged for your instructor. (Testing notice.)</p>}
+        <p className="live-check-status">{voice.status} This comparison does not change your score.</p>
+      </aside>
       {config.debug_borders && <GazeDebugOverlay monitor={monitor} />}
 
       {phase.kind === 'uploading' && (

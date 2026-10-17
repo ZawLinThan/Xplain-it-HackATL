@@ -6,7 +6,7 @@ import StartScreen from '../../src/screens/StartScreen'
 
 vi.mock('../../src/api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/api/client')>()
-  return { ...actual, uploadFiles: vi.fn() }
+  return { ...actual, uploadFiles: vi.fn(), voiceStatus: vi.fn().mockResolvedValue({ available: false }) }
 })
 vi.mock('../../src/api/media', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/api/media')>()
@@ -38,7 +38,7 @@ function pick(label: string, f: File) {
 async function ready() {
   const onStart = vi.fn()
   render(<StartScreen error={null} onStart={onStart} />)
-  fireEvent.click(screen.getByRole('button', { name: /submit assignment/i }))
+  fireEvent.click(screen.getByRole('button', { name: /start explaining/i }))
   fireEvent.click(screen.getByRole('button', { name: 'Check devices' }))
   await screen.findByText(/microphone ready/i)
   fireEvent.click(screen.getByRole('checkbox', { name: /I agree/ }))
@@ -116,10 +116,13 @@ describe('StartScreen files', () => {
 
   it('explains the look-away count honestly in the consent text', () => {
     render(<StartScreen error={null} onStart={vi.fn()} />)
-    fireEvent.click(screen.getByRole('button', { name: /submit assignment/i }))
+    fireEvent.click(screen.getByRole('button', { name: /start explaining/i }))
     const text = document.body.textContent ?? ''
     expect(text).toMatch(/count of how often you look away/i)
     expect(text).toMatch(/never changes your score/i)
+    expect(text).toMatch(/boundary-stay durations, including corners/i)
+    expect(text).toMatch(/3 seconds of detected mismatch/i)
+    expect(text).toMatch(/cannot establish identity/i)
     expect(text).not.toMatch(/not analysed/i)
     expect(text).not.toMatch(/eye.?tracking/i)
   })
@@ -144,7 +147,7 @@ it('accepts multiple answers, appends later selections, and removes one file', a
 it('opens setup from the landing page and returns focus when closed', () => {
   render(<StartScreen error={null} onStart={vi.fn()} />)
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  const submit = screen.getByRole('button', { name: /submit assignment/i })
+  const submit = screen.getByRole('button', { name: /start explaining/i })
   submit.focus()
   fireEvent.click(submit)
   expect(screen.getByRole('dialog', { name: 'Prepare your assessment' })).toBeInTheDocument()
@@ -164,12 +167,12 @@ it('releases a device request that resolves after setup has been closed', async 
   let resolve!: (value: Awaited<ReturnType<typeof openMedia>>) => void
   vi.mocked(openMedia).mockImplementationOnce(() => new Promise((done) => { resolve = done }))
   render(<StartScreen error={null} onStart={vi.fn()} />)
-  fireEvent.click(screen.getByRole('button', { name: /submit assignment/i }))
+  fireEvent.click(screen.getByRole('button', { name: /start explaining/i }))
   fireEvent.click(screen.getByRole('button', { name: 'Check devices' }))
   fireEvent.click(screen.getByRole('button', { name: 'Close setup' }))
   const stop = vi.fn()
   resolve({ stream: { getTracks: () => [{ stop }] } as unknown as MediaStream, hasVideo: false })
   await waitFor(() => expect(stop).toHaveBeenCalledOnce())
-  fireEvent.click(screen.getByRole('button', { name: /submit assignment/i }))
+  fireEvent.click(screen.getByRole('button', { name: /start explaining/i }))
   expect(screen.getByRole('button', { name: 'Check devices' })).toBeInTheDocument()
 })

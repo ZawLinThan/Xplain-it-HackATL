@@ -393,6 +393,157 @@
         }
       }
     },
+    "/api/v1/voice/status": {
+      "get": {
+        "tags": [
+          "voice verification"
+        ],
+        "summary": "Status",
+        "operationId": "status_api_v1_voice_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/voice/enroll": {
+      "post": {
+        "tags": [
+          "voice verification"
+        ],
+        "summary": "Enroll",
+        "operationId": "enroll_api_v1_voice_enroll_post",
+        "parameters": [
+          {
+            "name": "consent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Consent"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "contentMediaType": "application/octet-stream",
+                "maxLength": 640000,
+                "title": "Pcm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceEnrollment"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/questions/{n}/voice-check": {
+      "post": {
+        "tags": [
+          "voice verification"
+        ],
+        "summary": "Check",
+        "operationId": "check_api_v1_sessions__session_id__questions__n__voice_check_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "n",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "N"
+            }
+          },
+          {
+            "name": "sequence",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "title": "Sequence"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "contentMediaType": "application/octet-stream",
+                "maxLength": 128000,
+                "title": "Pcm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceCheckResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "tags": [
@@ -548,6 +699,39 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "LookawayDuration": {
+        "properties": {
+          "t_ms": {
+            "maximum": 60000,
+            "minimum": 0,
+            "title": "T Ms",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "maximum": 60000,
+            "minimum": 0,
+            "title": "Duration Ms",
+            "type": "integer"
+          },
+          "side": {
+            "enum": [
+              "left",
+              "right",
+              "top",
+              "bottom"
+            ],
+            "title": "Side",
+            "type": "string"
+          }
+        },
+        "required": [
+          "t_ms",
+          "duration_ms",
+          "side"
+        ],
+        "title": "LookawayDuration",
+        "type": "object"
+      },
       "LookawayEvent": {
         "properties": {
           "t_ms": {
@@ -595,6 +779,13 @@
             },
             "type": "array",
             "title": "Events"
+          },
+          "duration_log": {
+            "items": {
+              "$ref": "#/components/schemas/LookawayDuration"
+            },
+            "type": "array",
+            "title": "Duration Log"
           }
         },
         "type": "object",
@@ -608,6 +799,13 @@
       },
       "ProfessorQuestion": {
         "properties": {
+          "voice_flags": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceFlag"
+            },
+            "type": "array",
+            "title": "Voice Flags"
+          },
           "n": {
             "type": "integer",
             "title": "N"
@@ -754,6 +952,11 @@
       },
       "ProfessorSessionRow": {
         "properties": {
+          "voice_flagged": {
+            "type": "boolean",
+            "title": "Voice Flagged",
+            "default": false
+          },
           "session_id": {
             "type": "string",
             "title": "Session Id"
@@ -1027,6 +1230,17 @@
       },
       "SessionStart": {
         "properties": {
+          "voice_enrollment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Enrollment Id"
+          },
           "upload_id": {
             "anyOf": [
               {
@@ -1142,6 +1356,97 @@
         ],
         "title": "ValidationError"
       },
+      "VoiceCheckResult": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "match",
+              "mismatch",
+              "uncertain",
+              "insufficient_speech",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "flagged": {
+            "type": "boolean",
+            "title": "Flagged"
+          },
+          "similarity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Similarity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "flagged"
+        ],
+        "title": "VoiceCheckResult"
+      },
+      "VoiceEnrollment": {
+        "properties": {
+          "enrollment_id": {
+            "type": "string",
+            "title": "Enrollment Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enrollment_id"
+        ],
+        "title": "VoiceEnrollment"
+      },
+      "VoiceFlag": {
+        "properties": {
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "similarity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Similarity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created_at",
+          "duration_ms"
+        ],
+        "title": "VoiceFlag"
+      },
+      "VoiceStatus": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available"
+        ],
+        "title": "VoiceStatus"
+      },
       "Weights": {
         "properties": {
           "problem": {
@@ -1173,6 +1478,14 @@
             },
             "maxItems": 200,
             "title": "Events",
+            "type": "array"
+          },
+          "duration_log": {
+            "items": {
+              "$ref": "#/components/schemas/LookawayDuration"
+            },
+            "maxItems": 200,
+            "title": "Duration Log",
             "type": "array"
           }
         },

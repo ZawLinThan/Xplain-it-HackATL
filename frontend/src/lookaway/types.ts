@@ -1,7 +1,9 @@
 import type { components } from '../api/schema'
 
 /** From the backend contract. Never hand-write this shape. */
-export type LookawayPayload = Required<components['schemas']['LookawayIn']>
+type LookawayIn = components['schemas']['LookawayIn']
+export type LookawayPayload = Required<Pick<LookawayIn, 'tracked' | 'events'>> & Omit<LookawayIn, 'tracked' | 'events'>
+export type LookawayDuration = components['schemas']['LookawayDuration']
 export type LookawayEvent = components['schemas']['LookawayEvent']
 export type Side = LookawayEvent['side']
 

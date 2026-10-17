@@ -47,7 +47,7 @@ def test_not_tracked_is_not_flagged_and_not_zero(client, llm, stt):
     assert send(client, sid, 2, tracked=False, count=0).status_code == 201
     d = professor_session(client, sid)
     for q in d["questions"][:2]:
-        assert q["lookaway"] == {"tracked": False, "count": 0, "flagged": False, "events": []}
+        assert q["lookaway"] == {"tracked": False, "count": 0, "flagged": False, "events": [], "duration_log": []}
     rows = client.get("/api/v1/professor/sessions", headers=PROF).json()["sessions"]
     assert rows[0]["lookaway_tracked_all"] is False and rows[0]["lookaway_flagged"] is False
 
@@ -103,3 +103,33 @@ def test_config_has_dev_toggles(client, monkeypatch):
     monkeypatch.setenv("GAZE_TRACKING", "0")
     c = client.get("/api/v1/config").json()
     assert c["debug_borders"] is True and c["gaze_tracking"] is False
+
+
+
+def test_duration_log_is_saved_with_normal_events_and_only_exposed_to_professor(client, llm, stt, capsys):
+    sid = new_session(client, llm)
+    stt.push("a")
+    corners = [{"t_ms": 1000, "duration_ms": 2300, "side": "left"}]
+    response = send(client, sid, 1, raw=json.dumps({"tracked": True, "events": events(3), "duration_log": corners}))
+    assert response.status_code == 201
+    assert "duration_log" not in response.json()
+    look = professor_session(client, sid)["questions"][0]["lookaway"]
+    assert look["events"] == events(3)
+    assert look["count"] == 3
+    assert look["duration_log"] == corners
+    printed = [line for line in capsys.readouterr().out.splitlines() if line.startswith("[look-away] Saved for professor:")]
+    stored = json.loads(printed[-1].split(": ", 1)[1])
+    assert stored["duration_log"] == corners and stored["events"] == events(3)
+    assert stored["count"] == 3
+    assert client.get(f"/api/v1/professor/sessions/{sid}").status_code == 401
+
+
+def test_old_clients_and_disabled_tracking_have_empty_duration_log(client, llm, stt, monkeypatch):
+    sid = new_session(client, llm)
+    stt.push("a", "b")
+    assert send(client, sid, 1, count=1).status_code == 201
+    assert professor_session(client, sid)["questions"][0]["lookaway"]["duration_log"] == []
+    monkeypatch.setenv("GAZE_TRACKING", "0")
+    assert send(client, sid, 2, raw=json.dumps({"tracked": True, "events": events(1), "duration_log": [{"t_ms": 0, "duration_ms": 2500, "side": "right"}]})).status_code == 201
+    look = professor_session(client, sid)["questions"][1]["lookaway"]
+    assert look["tracked"] is False and look["duration_log"] == []

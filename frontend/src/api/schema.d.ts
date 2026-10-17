@@ -116,7 +116,7 @@ export interface paths {
         put?: never;
         /**
          * Create Upload
-         * @description Store the assessment questions file and the student's answers file.
+         * @description Store the assessment questions file and the student's answer files.
          */
         post: operations["create_upload_api_v1_uploads_post"];
         delete?: never;
@@ -156,6 +156,57 @@ export interface paths {
         get: operations["get_session_api_v1_professor_sessions__session_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status */
+        get: operations["status_api_v1_voice_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/voice/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enroll */
+        post: operations["enroll_api_v1_voice_enroll_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/{session_id}/questions/{n}/voice-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check */
+        post: operations["check_api_v1_sessions__session_id__questions__n__voice_check_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -236,6 +287,18 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** LookawayDuration */
+        LookawayDuration: {
+            /** T Ms */
+            t_ms: number;
+            /** Duration Ms */
+            duration_ms: number;
+            /**
+             * Side
+             * @enum {string}
+             */
+            side: "left" | "right" | "top" | "bottom";
+        };
         /** LookawayEvent */
         LookawayEvent: {
             /** T Ms */
@@ -256,9 +319,13 @@ export interface components {
             flagged: boolean;
             /** Events */
             events: components["schemas"]["LookawayEvent"][];
+            /** Duration Log */
+            duration_log?: components["schemas"]["LookawayDuration"][];
         };
         /** ProfessorQuestion */
         ProfessorQuestion: {
+            /** Voice Flags */
+            voice_flags?: components["schemas"]["VoiceFlag"][];
             /** N */
             n: number;
             /** Text */
@@ -304,6 +371,11 @@ export interface components {
         };
         /** ProfessorSessionRow */
         ProfessorSessionRow: {
+            /**
+             * Voice Flagged
+             * @default false
+             */
+            voice_flagged: boolean;
             /** Session Id */
             session_id: string;
             /** Created At */
@@ -422,6 +494,8 @@ export interface components {
         };
         /** SessionStart */
         SessionStart: {
+            /** Voice Enrollment Id */
+            voice_enrollment_id?: string | null;
             /**
              * Upload Id
              * @description From POST /uploads; omit for the sample quiz
@@ -467,6 +541,37 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VoiceCheckResult */
+        VoiceCheckResult: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "match" | "mismatch" | "uncertain" | "insufficient_speech" | "unavailable";
+            /** Flagged */
+            flagged: boolean;
+            /** Similarity */
+            similarity?: number | null;
+        };
+        /** VoiceEnrollment */
+        VoiceEnrollment: {
+            /** Enrollment Id */
+            enrollment_id: string;
+        };
+        /** VoiceFlag */
+        VoiceFlag: {
+            /** Created At */
+            created_at: number;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Similarity */
+            similarity?: number | null;
+        };
+        /** VoiceStatus */
+        VoiceStatus: {
+            /** Available */
+            available: boolean;
+        };
         /** Weights */
         Weights: {
             /** Problem */
@@ -483,6 +588,8 @@ export interface components {
             tracked: boolean;
             /** Events */
             events?: components["schemas"]["LookawayEvent"][];
+            /** Duration Log */
+            duration_log?: components["schemas"]["LookawayDuration"][];
         };
     };
     responses: never;
@@ -731,6 +838,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfessorSession"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    status_api_v1_voice_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceStatus"];
+                };
+            };
+        };
+    };
+    enroll_api_v1_voice_enroll_post: {
+        parameters: {
+            query?: {
+                consent?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceEnrollment"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_api_v1_sessions__session_id__questions__n__voice_check_post: {
+        parameters: {
+            query: {
+                sequence: number;
+            };
+            header?: never;
+            path: {
+                session_id: string;
+                n: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceCheckResult"];
                 };
             };
             /** @description Validation Error */

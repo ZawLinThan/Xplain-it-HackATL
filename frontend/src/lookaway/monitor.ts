@@ -1,6 +1,7 @@
+import { DurationLog } from './durations'
 import { createCounter, type Counter, type CounterOptions } from './counter'
 import type { FaceTracker } from './FaceTracker'
-import type { GazeSample, LookawayPayload } from './types'
+import type { LookawayDuration, GazeSample, LookawayEvent, LookawayPayload } from './types'
 
 export interface MonitorSnapshot {
   /** Calibrated gaze point, or null when no face. */
@@ -8,6 +9,8 @@ export interface MonitorSnapshot {
   counting: boolean
   count: number
   tracked: boolean
+  events: readonly LookawayEvent[]
+  durations: readonly LookawayDuration[]
 }
 
 const MIN_CALIBRATION_SAMPLES = 5
@@ -30,6 +33,7 @@ function median(values: number[]): number {
  */
 export class LookAwayMonitor {
   private counter: Counter | null = null
+  private durationLog: DurationLog | null = null
   private tracked = false
   private failed = false
   private warned = false
@@ -40,7 +44,7 @@ export class LookAwayMonitor {
   private offset = { x: 0, y: 0 }
   private last: GazeSample | null = null
   private listeners = new Set<() => void>()
-  private snapshot: MonitorSnapshot = { sample: null, counting: false, count: 0, tracked: false }
+  private snapshot: MonitorSnapshot = { sample: null, counting: false, count: 0, tracked: false, events: [], durations: [] }
   private readonly tracker: FaceTracker | null
   private readonly options: Partial<CounterOptions>
   private readonly now: () => number
@@ -78,19 +82,23 @@ export class LookAwayMonitor {
       // the median, so a glance away while reading cannot move the centre
       this.offset = { x: median(this.calibration.x) - 0.5, y: median(this.calibration.y) - 0.5 }
     }
-    this.counter = createCounter(this.now(), this.options)
+    const now = this.now()
+    this.counter = createCounter(now, this.options)
+    this.durationLog = new DurationLog(now)
     this.counting = true
     this.tracker?.countingStarted?.()
     this.publish()
   }
 
   stopCounting(): void {
+    this.durationLog?.finish()
     this.counting = false
     this.publish()
   }
 
   /** Stop watching the camera (the recording is over) but keep the result. */
   halt(): void {
+    this.durationLog?.finish()
     this.halted = true
     this.generation++
     this.counting = false
@@ -99,6 +107,7 @@ export class LookAwayMonitor {
   }
 
   dispose(): void {
+    this.durationLog?.finish()
     this.generation++
     this.counting = false
     this.publish()
@@ -108,7 +117,8 @@ export class LookAwayMonitor {
 
   payload(): LookawayPayload {
     const ok = this.tracked && !this.failed && this.counter !== null
-    return { tracked: ok, events: ok ? (this.counter?.events() ?? []) : [] }
+    const durationLog = ok ? (this.durationLog?.entries() ?? []) : []
+    return { tracked: ok, events: ok ? (this.counter?.events() ?? []) : [], ...(durationLog.length ? { duration_log: durationLog } : {}) }
   }
 
   subscribe(listener: () => void): () => void {
@@ -130,7 +140,11 @@ export class LookAwayMonitor {
         }
       : null
     this.last = sample
-    if (this.counting && this.counter) this.counter.push(sample, this.now())
+    if (this.counting && this.counter) {
+      const now = this.now()
+      this.counter.push(sample, now)
+      this.durationLog?.push(sample, now)
+    }
     this.publish()
   }
 
@@ -149,6 +163,8 @@ export class LookAwayMonitor {
       counting: this.counting,
       count: this.counter?.events().length ?? 0,
       tracked: this.tracked && !this.failed,
+      events: this.counter?.events() ?? [],
+      durations: this.durationLog?.entries() ?? [],
     }
     this.listeners.forEach((l) => l())
   }

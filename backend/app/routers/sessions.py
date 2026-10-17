@@ -1,5 +1,6 @@
 """The four session endpoints. See CLAUDE.md for the flow."""
 
+import json
 import logging
 import shutil
 import tempfile
@@ -8,7 +9,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from .. import config, db, service
+from .. import config, db, service, voice
 from ..deps import get_llm, get_stt
 from ..errors import AppError
 from ..llm import LLMProvider
@@ -86,8 +87,11 @@ def create_session(
     else:
         assessment = service.load_assessment()
         title, text = assessment["title"], assessment["extracted_text"]
+    if body and body.voice_enrollment_id:
+        voice.reference(body.voice_enrollment_id)
     questions, source = service.make_questions(llm, text, allow_fallback=not used_upload)
     session_id = db.create_session(title, questions)
+    voice.bind(session_id, body.voice_enrollment_id if body else None)
     log.info("session %s created with %s questions", session_id, source)
     return SessionCreated(session_id=session_id, title=title, used_upload=used_upload)
 
@@ -120,16 +124,22 @@ def _save_lookaway(session_id: str, n: int, raw: str | None) -> None:
 
     Only counts and times are accepted. Bad or missing data is stored as not tracked.
     """
-    tracked, events = False, []
+    tracked, events, duration_log = False, [], []
     if raw:
         try:
             parsed = LookawayIn.model_validate_json(raw)
             tracked, events = parsed.tracked, [e.model_dump() for e in parsed.events]
+            duration_log = [e.model_dump() for e in parsed.duration_log]
         except ValueError:
             log.warning("ignored malformed look-away data for %s/%s", session_id, n)
     if not config.gaze_tracking():
-        tracked, events = False, []
-    db.save_lookaway(session_id, n, tracked, events)
+        tracked, events, duration_log = False, [], []
+    db.save_lookaway(session_id, n, tracked, events, duration_log)
+    print("[look-away] Saved for professor: " + json.dumps({
+        "session_id": session_id, "question": n, "tracked": tracked,
+        "count": len(events) if tracked else 0,
+        "events": events if tracked else [], "duration_log": duration_log if tracked else [],
+    }), flush=True)
 
 
 @router.post(
@@ -209,4 +219,7 @@ def submit_answer(
 @router.get("/sessions/{session_id}/report", response_model=Report)
 def get_report(session_id: str, llm: LLMProvider = Depends(get_llm)) -> Report:
     """Grade the three answers (one LLM call), save the scores and return the report."""
-    return service.build_report(session_id, llm)
+    result = service.build_report(session_id, llm)
+    if len(db.list_answers(session_id)) >= TOTAL_QUESTIONS:
+        voice.forget(session_id)
+    return result

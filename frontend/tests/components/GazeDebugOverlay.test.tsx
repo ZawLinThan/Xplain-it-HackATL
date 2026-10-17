@@ -14,20 +14,26 @@ describe('GazeDebugOverlay', () => {
       }),
       stop: vi.fn(),
     }
-    const monitor = new LookAwayMonitor(tracker)
+    let now = 0
+    const monitor = new LookAwayMonitor(tracker, {}, () => now)
     await monitor.attach({} as HTMLVideoElement)
     render(<GazeDebugOverlay monitor={monitor} />)
     const root = screen.getByTestId('gaze-debug')
     expect(root).toHaveAttribute('aria-hidden', 'true')
     expect(root.querySelectorAll('div[style*="2px solid"]')).toHaveLength(4)
     expect(root).toHaveTextContent('look-aways 0')
-    expect(root).toHaveTextContent('paused (total retained)')
+    expect(root).toHaveTextContent('duration entries 0')
     const { act } = await import('@testing-library/react')
     act(() => emit({ gx: 0.7, gy: 0.4 }))
     expect(root.querySelector('div[style*="left: 70%"]')).not.toBeNull()
     act(() => monitor.beginCounting())
-    expect(root).toHaveTextContent('recording new events')
+    act(() => {
+      for (now = 0; now <= 2200; now += 100) emit({ gx: 0.02, gy: 0.02 })
+    })
+    expect(root).toHaveTextContent('duration entries 1')
+    expect(root).toHaveTextContent('Normal log:')
+    expect(root).toHaveTextContent('Duration log: 0.0s left (2.2s)')
     act(() => monitor.halt())
-    expect(root).toHaveTextContent('paused (total retained)')
+    expect(root).toHaveTextContent('duration entries 1')
   })
 })

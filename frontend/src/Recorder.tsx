@@ -17,6 +17,8 @@ interface RecorderProps {
   onStarted?: () => void
   /** Local microphone amplitude for the background visual, only while recording. */
   onLevel?: (level: number) => void
+  /** Attach a session-only live audio check; return its cleanup. */
+  onRecordingStream?: (stream: MediaStream) => () => void
   /** Called once when the camera preview is ready (the video element), or null when there is no camera. */
   onVideoReady?: (video: HTMLVideoElement | null) => void
 }
@@ -38,6 +40,7 @@ export default function Recorder({
   hold = false,
   onStarted,
   onLevel,
+  onRecordingStream,
   onVideoReady,
 }: RecorderProps) {
   const [state, setState] = useState<RecorderState>('requesting')
@@ -55,6 +58,8 @@ export default function Recorder({
   const startedAtRef = useRef(0)
   const announcedRef = useRef({ ten: false, zero: false })
   const onCompleteRef = useRef(onComplete)
+  const stopVerificationRef = useRef<(() => void) | null>(null)
+  const onRecordingStreamRef = useRef(onRecordingStream)
   const stopLevelRef = useRef<(() => void) | null>(null)
   const onLevelRef = useRef(onLevel)
   const onStartedRef = useRef(onStarted)
@@ -63,6 +68,7 @@ export default function Recorder({
 
   useEffect(() => {
     onCompleteRef.current = onComplete
+    onRecordingStreamRef.current = onRecordingStream
     onLevelRef.current = onLevel
     onStartedRef.current = onStarted
     onVideoReadyRef.current = onVideoReady
@@ -95,7 +101,7 @@ export default function Recorder({
       })
     return () => {
       cancelled = true
-      stopLevelRef.current?.()
+      stopLevelRef.current?.(); stopVerificationRef.current?.()
       clearTimer()
       const recorder = recorderRef.current
       if (recorder && recorder.state !== 'inactive') {
@@ -121,7 +127,7 @@ export default function Recorder({
   }, [state, hasVideo])
 
   const stop = useCallback(() => {
-    stopLevelRef.current?.()
+    stopLevelRef.current?.(); stopVerificationRef.current?.()
     clearTimer()
     const recorder = recorderRef.current
     if (recorder && recorder.state !== 'inactive') recorder.stop()
@@ -156,7 +162,7 @@ export default function Recorder({
         if (event.data.size > 0) chunksRef.current.push(event.data)
       }
       recorder.onstop = () => {
-        stopLevelRef.current?.()
+        stopLevelRef.current?.(); stopVerificationRef.current?.()
         clearTimer()
         const seconds = Math.min(maxSeconds, (performance.now() - startedAtRef.current) / 1000)
         const type = recorder.mimeType || mimeType || 'audio/webm'
@@ -167,6 +173,7 @@ export default function Recorder({
       announcedRef.current = { ten: false, zero: false }
       recorderRef.current = recorder
       recorder.start()
+      stopVerificationRef.current = onRecordingStreamRef.current?.(audioOnly) ?? null
       if (onLevelRef.current) stopLevelRef.current = startAudioLevel(audioOnly, (level) => onLevelRef.current?.(level))
       startedAtRef.current = performance.now()
       setRemaining(maxSeconds)
@@ -175,7 +182,7 @@ export default function Recorder({
       timerRef.current = window.setInterval(tick, 100)
       onStartedRef.current?.()
     } catch {
-      stopLevelRef.current?.()
+      stopLevelRef.current?.(); stopVerificationRef.current?.()
       recorderRef.current = null
       setStartFailed(true)
       setError('Recording could not start by itself. Press Start answering to try again.')

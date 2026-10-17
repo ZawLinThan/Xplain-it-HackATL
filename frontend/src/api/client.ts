@@ -1,3 +1,5 @@
+import { voiceEnrollment, setVoiceEnrollment } from '../voice/profile'
+import type { components } from './schema'
 import answerResultMock from './mocks/answer_result.json'
 import professorDetailMocks from './mocks/professor_sessions_detail.json'
 import professorListMock from './mocks/professor_sessions.json'
@@ -17,6 +19,7 @@ import type {
   SessionCreated,
   UploadCreated,
 } from './types'
+import { printLookawaySubmission } from '../lookaway/debug'
 import type { LookawayPayload } from '../lookaway/types'
 
 const MOCK = import.meta.env.VITE_MOCK === '1'
@@ -94,12 +97,13 @@ export function uploadFiles(questions: File, answers: File[]): Promise<UploadCre
 
 export function createSession(uploadId?: string): Promise<SessionCreated> {
   if (MOCK) return mockCall(sessionMock as SessionCreated, 1200)
-  if (!uploadId) return request<SessionCreated>('/sessions', { method: 'POST' })
+  const enrollment = voiceEnrollment()
+  if (!uploadId && !enrollment) return request<SessionCreated>('/sessions', { method: 'POST' })
   return request<SessionCreated>('/sessions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ upload_id: uploadId }),
-  })
+    body: JSON.stringify({ ...(uploadId ? { upload_id: uploadId } : {}), ...(enrollment ? { voice_enrollment_id: enrollment } : {}) }),
+  }).then((session) => { setVoiceEnrollment(null); return session })
 }
 
 /** Asking for a question starts its server-side timer, so only call this when it is shown. */
@@ -118,6 +122,7 @@ export function submitAnswer(
   audio: Blob,
   lookaway?: LookawayPayload,
 ): Promise<AnswerResult> {
+  printLookawaySubmission(sessionId, n, lookaway, MOCK)
   if (MOCK) {
     const transcript = (transcriptsMock as string[])[n - 1] ?? ''
     return mockCall({ ...(answerResultMock as AnswerResult), transcript }, 1000)
@@ -129,6 +134,12 @@ export function submitAnswer(
   return request<AnswerResult>(`/sessions/${encodeURIComponent(sessionId)}/questions/${n}/answer`, {
     method: 'POST',
     body: form,
+  }).then((result) => {
+    console.info(`[look-away] Question ${n}: server accepted the answer. See backend "Saved for professor" output for stored logs.`)
+    return result
+  }).catch((error: unknown) => {
+    console.warn(`[look-away] Question ${n}: submission not confirmed; logs remain available for retry.`)
+    throw error
   })
 }
 
@@ -166,5 +177,19 @@ export function getProfessorSession(token: string, sessionId: string): Promise<P
   }
   return request<ProfessorSession>(`/professor/sessions/${encodeURIComponent(sessionId)}`, {
     headers: professorHeaders(token),
+  })
+}
+
+
+export function voiceStatus(): Promise<components['schemas']['VoiceStatus']> {
+  if (MOCK) return Promise.resolve({ available: false })
+  return request('/voice/status')
+}
+export function enrollVoice(pcm: Uint8Array<ArrayBuffer>): Promise<components['schemas']['VoiceEnrollment']> {
+  return request('/voice/enroll?consent=true', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: pcm })
+}
+export function checkVoice(sessionId: string, question: number, sequence: number, pcm: Uint8Array<ArrayBuffer>, signal: AbortSignal): Promise<components['schemas']['VoiceCheckResult']> {
+  return request(`/sessions/${encodeURIComponent(sessionId)}/questions/${question}/voice-check?sequence=${sequence}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: pcm, signal,
   })
 }
