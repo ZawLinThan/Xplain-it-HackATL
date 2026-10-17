@@ -36,14 +36,24 @@ class LLMProvider(ABC):
         """Return the model's text output (expected to be a JSON object)."""
 
     def complete_json(self, system: str, user: str, schema: type[T], temperature: float = 0.0) -> T:
-        last_error: Exception | None = None
+        contract = json.dumps(schema.model_json_schema(), ensure_ascii=False)
+        instructions = system + "\nReturn only one JSON object matching this JSON Schema:\n" + contract
+        feedback = ""
         for _ in range(self.max_attempts):
-            text = self._raw(system, user, temperature)
+            text = self._raw(instructions + feedback, user, temperature)
             try:
                 return schema.model_validate(json.loads(_strip_fences(text)))
-            except (ValueError, ValidationError) as exc:  # JSONDecodeError is a ValueError
-                last_error = exc
-        raise LLMError(f"model output did not match {schema.__name__}") from last_error
+            except ValidationError as exc:
+                # Never echo model output, uploaded content or input values into logs/retries.
+                issues = [{"field": list(error["loc"]), "type": error["type"]}
+                          for error in exc.errors(include_input=False, include_url=False)]
+                detail = json.dumps(issues)
+                feedback = "\nThe previous response failed validation: " + detail + ". Regenerate the complete JSON object and obey every field type and length limit."
+            except ValueError:
+                detail = "invalid JSON"
+                feedback = "\nThe previous response was invalid JSON. Regenerate one valid JSON object without Markdown or commentary."
+        raise LLMError(f"model output did not match {schema.__name__}: {detail}")
+
 
 
 def _strip_fences(text: str) -> str:
@@ -159,7 +169,7 @@ class CachedProvider(LLMProvider):
 
     def complete_json(self, system: str, user: str, schema: type[T], temperature: float = 0.0) -> T:
         key = hashlib.sha256(
-            json.dumps([self.inner.model, system, user, schema.__name__, temperature]).encode()
+            json.dumps([self.inner.model, system, user, schema.model_json_schema(), temperature]).encode()
         ).hexdigest()
         hit = db.cache_get(key)
         if hit is not None:

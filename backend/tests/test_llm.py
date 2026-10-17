@@ -90,7 +90,8 @@ def test_groq_sends_json_mode_and_key(monkeypatch):
     GroqProvider("secret").complete_json("sys", "usr", Out, temperature=0.0)
     assert seen["body"]["response_format"] == {"type": "json_object"}
     assert seen["headers"]["Authorization"] == "Bearer secret"
-    assert seen["body"]["messages"][0]["content"] == "sys"
+    assert seen["body"]["messages"][0]["content"].startswith("sys\n")
+    assert '"required": ["n"]' in seen["body"]["messages"][0]["content"]
 
 
 def test_provider_choice(monkeypatch):
