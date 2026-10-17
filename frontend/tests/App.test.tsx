@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('./api/media', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./api/media')>()
+vi.mock('../src/api/media', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/api/media')>()
   const track = { kind: 'audio', stop: vi.fn() }
   return {
     ...actual,
@@ -13,7 +13,7 @@ vi.mock('./api/media', async (importOriginal) => {
   }
 })
 
-vi.mock('./Recorder', () => ({
+vi.mock('../src/Recorder', () => ({
   default: ({ onComplete }: { onComplete: (b: Blob, s: number) => void }) => (
     <button type="button" onClick={() => onComplete(new Blob(['x']), 8)}>
       finish recording
@@ -34,7 +34,7 @@ afterEach(() => {
 })
 
 async function renderApp() {
-  const { default: App } = await import('./App')
+  const { default: App } = await import('../src/App')
   return render(<App />)
 }
 

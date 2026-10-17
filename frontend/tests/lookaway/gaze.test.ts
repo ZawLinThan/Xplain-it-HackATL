@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LM, estimateGaze, type Point } from './gaze'
+import { LM, estimateGaze, type Point } from '../../src/lookaway/gaze'
 
 /** A synthetic face looking straight at the camera, centred in the frame. */
 function face(over: { noseX?: number; noseY?: number; irisShift?: number } = {}): Point[] {

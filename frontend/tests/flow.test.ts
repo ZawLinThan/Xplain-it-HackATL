@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { firstUnanswered, initialState, reducer, type FlowState } from './flow'
+import { firstUnanswered, initialState, reducer, type FlowState } from '../src/flow'
 
 const created: FlowState = reducer(initialState, {
   type: 'created',

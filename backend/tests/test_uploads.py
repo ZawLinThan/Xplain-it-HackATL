@@ -105,3 +105,30 @@ def test_cleanup_removes_old_uploads(client, tmp_path, monkeypatch):
         conn.execute("UPDATE uploads SET created_at = ?", (time.time() - 48 * 3600,))
     cleanup.purge()
     assert not folder.exists() and db.get_upload(body["upload_id"]) is None
+
+
+def test_multiple_answers_all_reach_question_generation(client, llm, tmp_path):
+    response = client.post(URL, files=[
+        ("questions_file", ("q.txt", b"Explain both functions")),
+        ("answers_file", ("a.py", b"def first_function(): pass")),
+        ("answers_file", ("b.py", b"def second_function(): pass")),
+    ])
+    assert response.status_code == 201
+    body = response.json()
+    assert [f["name"] for f in body["files"]] == ["q.txt", "a.py", "b.py"]
+    folder = tmp_path / "uploads" / body["upload_id"]
+    assert (folder / "answers_1.py").read_text() == "def first_function(): pass"
+    assert (folder / "answers_2.py").read_text() == "def second_function(): pass"
+    llm.push(good_questions())
+    assert client.post("/api/v1/sessions", json={"upload_id": body["upload_id"]}).status_code == 201
+    assert "first_function" in llm.calls[-1][1] and "second_function" in llm.calls[-1][1]
+
+
+def test_invalid_second_answer_rejects_entire_upload(client, tmp_path):
+    response = client.post(URL, files=[
+        ("questions_file", ("q.txt", b"Questions")),
+        ("answers_file", ("a.py", b"pass")),
+        ("answers_file", ("b.exe", b"invalid")),
+    ])
+    assert response.status_code == 415
+    assert not list((tmp_path / "uploads").glob("*"))

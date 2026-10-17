@@ -8,7 +8,7 @@ import {
   getReport,
   submitAnswer,
   uploadFiles,
-} from './client'
+} from '../../src/api/client'
 
 function respond(status: number, body: unknown) {
   return Promise.resolve(new Response(JSON.stringify(body), { status }))
@@ -81,7 +81,7 @@ describe('api client', () => {
     )
     const q = new File(['q'], 'q.txt')
     const a = new File(['a'], 'a.py')
-    expect((await uploadFiles(q, a)).upload_id).toBe('u1')
+    expect((await uploadFiles(q, [a])).upload_id).toBe('u1')
     expect(String(spy.mock.calls[0][0])).toBe('http://localhost:8000/api/v1/uploads')
     const form = spy.mock.calls[0][1]?.body as FormData
     expect((form.get('questions_file') as File).name).toBe('q.txt')

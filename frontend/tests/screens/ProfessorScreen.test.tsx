@@ -1,13 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, getProfessorSession, getProfessorSessions } from '../api/client'
-import detailMocks from '../api/mocks/professor_sessions_detail.json'
-import listMock from '../api/mocks/professor_sessions.json'
-import type { ProfessorSession, ProfessorSessions } from '../api/types'
-import ProfessorScreen from './ProfessorScreen'
+import { ApiError, getProfessorSession, getProfessorSessions } from '../../src/api/client'
+import detailMocks from '../../src/api/mocks/professor_sessions_detail.json'
+import listMock from '../../src/api/mocks/professor_sessions.json'
+import type { ProfessorSession, ProfessorSessions } from '../../src/api/types'
+import ProfessorScreen from '../../src/screens/ProfessorScreen'
 
-vi.mock('../api/client', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../api/client')>()
+vi.mock('../../src/api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/api/client')>()
   return { ...actual, getProfessorSessions: vi.fn(), getProfessorSession: vi.fn() }
 })
 

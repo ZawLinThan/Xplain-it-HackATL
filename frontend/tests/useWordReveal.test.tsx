@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { REAL_REVEAL_MAX_MS, REAL_REVEAL_MS_PER_WORD, SERVER_GRACE_MS, msPerWord } from './timing'
-import { useWordReveal, type RevealOptions } from './useWordReveal'
+import { REAL_REVEAL_MAX_MS, REAL_REVEAL_MS_PER_WORD, SERVER_GRACE_MS, msPerWord } from '../src/timing'
+import { useWordReveal, type RevealOptions } from '../src/useWordReveal'
 
 function Probe({ text, options }: { text: string; options?: RevealOptions }) {
   const r = useWordReveal(text, options)

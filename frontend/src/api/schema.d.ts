@@ -215,7 +215,7 @@ export interface components {
             /** Questions File */
             questions_file: string;
             /** Answers File */
-            answers_file: string;
+            answers_file: string[];
         };
         /** Body_submit_answer_api_v1_sessions__session_id__questions__n__answer_post */
         Body_submit_answer_api_v1_sessions__session_id__questions__n__answer_post: {

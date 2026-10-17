@@ -14,7 +14,7 @@ afterEach(() => {
 
 async function renderReport(variant?: string) {
   window.history.pushState({}, '', variant ? `/?mock=${variant}` : '/')
-  const { default: ReportScreen } = await import('./ReportScreen')
+  const { default: ReportScreen } = await import('../../src/screens/ReportScreen')
   const onRestart = vi.fn()
   render(<ReportScreen sessionId="s1" onRestart={onRestart} />)
   return { onRestart }

@@ -84,16 +84,16 @@ export function getConfig(): Promise<AppConfig> {
 }
 
 /** Send the two assessment files. The server says whether it will read them or use the sample. */
-export function uploadFiles(questions: File, answers: File): Promise<UploadCreated> {
+export function uploadFiles(questions: File, answers: File[]): Promise<UploadCreated> {
   if (MOCK) {
     const text = (f: File) => /\.(txt|md|py)$/i.test(f.name)
-    const textUsed = text(questions) && text(answers)
+    const textUsed = text(questions) && answers.every(text)
     return mockCall<UploadCreated>(
       {
         upload_id: 'mock-upload',
         files: [
           { role: 'questions', name: questions.name, size_bytes: questions.size },
-          { role: 'answers', name: answers.name, size_bytes: answers.size },
+          ...answers.map((file) => ({ role: 'answers' as const, name: file.name, size_bytes: file.size })),
         ],
         text_used: textUsed,
         note: textUsed
@@ -105,7 +105,7 @@ export function uploadFiles(questions: File, answers: File): Promise<UploadCreat
   }
   const form = new FormData()
   form.append('questions_file', questions)
-  form.append('answers_file', answers)
+  answers.forEach((file) => form.append('answers_file', file))
   return request<UploadCreated>('/uploads', { method: 'POST', body: form })
 }
 

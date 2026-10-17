@@ -1,4 +1,4 @@
-"""Store the two uploaded assessment files and read them when they are plain text.
+"""Store uploaded assessment files and read them when they are plain text.
 
 Files are only stored and decoded as text. They are never executed, imported or opened by any
 other program. The client's filename is never used on disk.
@@ -61,21 +61,28 @@ def _check(role: str, upload: UploadFile) -> tuple[str, str, bytes]:
     return name, ext, data
 
 
-def store_uploads(questions_file: UploadFile, answers_file: UploadFile) -> UploadCreated:
+def store_uploads(questions_file: UploadFile, answers_file: list[UploadFile]) -> UploadCreated:
     q_name, q_ext, q_data = _check("questions", questions_file)
-    a_name, a_ext, a_data = _check("answers", answers_file)
+    answers = [_check("answers", file) for file in answers_file]
+    a_name = ", ".join(name for name, _, _ in answers)
+    a_ext = ",".join(ext for _, ext, _ in answers)
 
     upload_id = str(uuid.uuid4())
     folder = config.upload_dir() / upload_id
     folder.mkdir(parents=True, exist_ok=True)
     (folder / f"questions{q_ext}").write_bytes(q_data)
-    (folder / f"answers{a_ext}").write_bytes(a_data)
+    for i, (_, ext, data) in enumerate(answers):
+        suffix = "" if len(answers) == 1 else f"_{i + 1}"
+        (folder / f"answers{suffix}{ext}").write_bytes(data)
 
-    text_used = q_ext in TEXT_EXTS and a_ext in TEXT_EXTS
+    text_used = q_ext in TEXT_EXTS and all(ext in TEXT_EXTS for _, ext, _ in answers)
     extracted = ""
     if text_used:
-        q_text = q_data.decode("utf-8", errors="replace")[:PER_FILE_CHARS]
-        a_text = a_data.decode("utf-8", errors="replace")[:PER_FILE_CHARS]
+        q_text = q_data.decode('utf-8', errors='replace')[:PER_FILE_CHARS]
+        a_text = "\n\n".join(
+            f"ANSWER FILE {i + 1}:\n{data.decode('utf-8', errors='replace')[:PER_FILE_CHARS]}"
+            for i, (_, _, data) in enumerate(answers)
+        )
         extracted = f"QUESTIONS FILE:\n{q_text}\n\nSTUDENT ANSWERS FILE:\n{a_text}"
         if looks_like_injection(extracted):
             # ids only: never log what the file says
@@ -86,7 +93,7 @@ def store_uploads(questions_file: UploadFile, answers_file: UploadFile) -> Uploa
         upload_id=upload_id,
         files=[
             UploadedFile(role="questions", name=q_name, size_bytes=len(q_data)),
-            UploadedFile(role="answers", name=a_name, size_bytes=len(a_data)),
+            *[UploadedFile(role="answers", name=name, size_bytes=len(data)) for name, _, data in answers],
         ],
         text_used=text_used,
         note=NOTE_TEXT if text_used else NOTE_SAMPLE,

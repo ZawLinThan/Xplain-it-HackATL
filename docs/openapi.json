@@ -239,7 +239,7 @@
           "uploads"
         ],
         "summary": "Create Upload",
-        "description": "Store the assessment questions file and the student's answers file.",
+        "description": "Store the assessment questions file and the student's answer files.",
         "operationId": "create_upload_api_v1_uploads_post",
         "requestBody": {
           "content": {
@@ -478,8 +478,11 @@
             "title": "Questions File"
           },
           "answers_file": {
-            "type": "string",
-            "contentMediaType": "application/octet-stream",
+            "items": {
+              "type": "string",
+              "contentMediaType": "application/octet-stream"
+            },
+            "type": "array",
             "title": "Answers File"
           }
         },

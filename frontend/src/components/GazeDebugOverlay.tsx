@@ -12,7 +12,7 @@ export default function GazeDebugOverlay({ monitor }: { monitor: LookAwayMonitor
     () => monitor.getSnapshot(),
   )
   const pct = `${DEFAULT_OPTIONS.band * 100}%`
-  const band = { position: 'fixed', background: 'rgba(255, 0, 0, 0.35)', pointerEvents: 'none', zIndex: 9999 } as const
+  const band = { position: 'fixed', background: 'rgba(255, 0, 0, 0.10)', pointerEvents: 'none', zIndex: 9999 } as const
   return (
     <div data-testid="gaze-debug" aria-hidden="true">
       <div style={{ ...band, top: 0, left: 0, right: 0, height: pct }} />

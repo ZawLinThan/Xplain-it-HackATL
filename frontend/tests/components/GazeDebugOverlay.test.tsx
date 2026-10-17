@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { LookAwayMonitor } from '../lookaway'
-import type { FaceTracker } from '../lookaway/FaceTracker'
-import GazeDebugOverlay from './GazeDebugOverlay'
+import { LookAwayMonitor } from '../../src/lookaway'
+import type { FaceTracker } from '../../src/lookaway/FaceTracker'
+import GazeDebugOverlay from '../../src/components/GazeDebugOverlay'
 
 describe('GazeDebugOverlay', () => {
   it('draws four red borders, the gaze dot and the count, and is hidden from assistive tech', async () => {

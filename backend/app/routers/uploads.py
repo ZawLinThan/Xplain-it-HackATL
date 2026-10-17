@@ -8,7 +8,7 @@ router = APIRouter(prefix="/api/v1", tags=["uploads"])
 
 @router.post("/uploads", response_model=UploadCreated, status_code=201)
 def create_upload(
-    questions_file: UploadFile = File(...), answers_file: UploadFile = File(...)
+    questions_file: UploadFile = File(...), answers_file: list[UploadFile] = File(...)
 ) -> UploadCreated:
-    """Store the assessment questions file and the student's answers file."""
+    """Store the assessment questions file and the student's answer files."""
     return uploads.store_uploads(questions_file, answers_file)

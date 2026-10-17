@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { borderOf, createCounter } from './counter'
-import type { GazeSample } from './types'
+import { borderOf, createCounter } from '../../src/lookaway/counter'
+import type { GazeSample } from '../../src/lookaway/types'
 
 const centre: GazeSample = { gx: 0.5, gy: 0.5 }
 const left: GazeSample = { gx: 0.05, gy: 0.5 }

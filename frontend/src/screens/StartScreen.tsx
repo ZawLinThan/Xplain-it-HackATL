@@ -3,6 +3,7 @@ import { ApiError, uploadFiles } from '../api/client'
 import { MediaDenied, openMedia, stopStream } from '../api/media'
 import Badge from '../components/Badge'
 import FileDrop from '../components/FileDrop'
+import FilesDrop from '../components/FilesDrop'
 import { useAppConfig } from '../demoMode'
 import { preloadTracker } from '../lookaway'
 
@@ -31,7 +32,7 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
   const config = useAppConfig()
   const [useSample, setUseSample] = useState(true)
   const [questionsFile, setQuestionsFile] = useState<File | null>(null)
-  const [answersFile, setAnswersFile] = useState<File | null>(null)
+  const [answersFiles, setAnswersFiles] = useState<File[]>([])
   const [fileErrors, setFileErrors] = useState<{ questions: string | null; answers: string | null }>({
     questions: null,
     answers: null,
@@ -43,11 +44,11 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
 
   // Upload as soon as both files are chosen, so a problem shows up before Start.
   useEffect(() => {
-    if (useSample || !questionsFile || !answersFile) return
+    if (useSample || !questionsFile || !answersFiles.length) return
     let alive = true
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUpload({ kind: 'uploading' })
-    uploadFiles(questionsFile, answersFile)
+    uploadFiles(questionsFile, answersFiles)
       .then((r) => alive && setUpload({ kind: 'ready', uploadId: r.upload_id, note: r.note }))
       .catch((e: unknown) => {
         if (!alive) return
@@ -59,13 +60,12 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
     return () => {
       alive = false
     }
-  }, [useSample, questionsFile, answersFile])
+  }, [useSample, questionsFile, answersFiles])
 
-  function choose(which: 'questions' | 'answers', file: File | null) {
+  function choose(which: 'questions', file: File | null) {
     setFileErrors((e) => ({ ...e, [which]: null }))
     setUpload({ kind: 'none' })
     if (which === 'questions') setQuestionsFile(file)
-    else setAnswersFile(file)
   }
   function reject(which: 'questions' | 'answers', message: string) {
     setFileErrors((e) => ({ ...e, [which]: message }))
@@ -140,11 +140,11 @@ export default function StartScreen({ error, onStart }: StartScreenProps) {
               onChange={(f) => choose('questions', f)}
               onReject={(m) => reject('questions', m)}
             />
-            <FileDrop
+            <FilesDrop
               label="Your answers"
-              file={answersFile}
+              files={answersFiles}
               error={fileErrors.answers}
-              onChange={(f) => choose('answers', f)}
+              onChange={(files) => { setAnswersFiles(files); setUpload({ kind: 'none' }); setFileErrors((e) => ({ ...e, answers: null })) }}
               onReject={(m) => reject('answers', m)}
             />
             {upload.kind === 'uploading' && <p className="muted" role="status">Uploading your files…</p>}

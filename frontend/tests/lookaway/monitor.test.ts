@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { FaceTracker } from './FaceTracker'
-import { LookAwayMonitor } from './monitor'
-import type { GazeSample } from './types'
+import type { FaceTracker } from '../../src/lookaway/FaceTracker'
+import { LookAwayMonitor } from '../../src/lookaway/monitor'
+import type { GazeSample } from '../../src/lookaway/types'
 
 class ScriptedTracker implements FaceTracker {
   emit: (s: GazeSample | null) => void = () => undefined

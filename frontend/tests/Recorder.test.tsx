@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import Recorder from './Recorder'
+import Recorder from '../src/Recorder'
 
 class FakeTrack {
   kind: string

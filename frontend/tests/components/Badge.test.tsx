@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { DemoModeContext } from '../demoMode'
-import Badge from './Badge'
+import { DemoModeContext } from '../../src/demoMode'
+import Badge from '../../src/components/Badge'
 
 describe('Badge', () => {
   it('shows the live-build label by default', () => {

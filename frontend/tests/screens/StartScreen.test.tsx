@@ -1,14 +1,14 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, uploadFiles } from '../api/client'
-import StartScreen from './StartScreen'
+import { ApiError, uploadFiles } from '../../src/api/client'
+import StartScreen from '../../src/screens/StartScreen'
 
-vi.mock('../api/client', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../api/client')>()
+vi.mock('../../src/api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/api/client')>()
   return { ...actual, uploadFiles: vi.fn() }
 })
-vi.mock('../api/media', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../api/media')>()
+vi.mock('../../src/api/media', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/api/media')>()
   const track = { kind: 'audio', stop: vi.fn() }
   return {
     ...actual,
@@ -18,7 +18,7 @@ vi.mock('../api/media', async (importOriginal) => {
     }),
   }
 })
-vi.mock('../lookaway', () => ({ preloadTracker: vi.fn() }))
+vi.mock('../../src/lookaway', () => ({ preloadTracker: vi.fn() }))
 
 const created = (text_used: boolean, note: string) => ({
   upload_id: 'u1',
@@ -131,4 +131,19 @@ describe('StartScreen files', () => {
     expect(text).not.toMatch(/not analysed/i)
     expect(text).not.toMatch(/eye.?tracking/i)
   })
+})
+
+
+it('accepts multiple answers, appends later selections, and removes one file', async () => {
+  await ready()
+  useOwnFiles()
+  const a = file('a.py'), b = file('b.py'), c = file('c.py')
+  const input = screen.getByLabelText('Your answers')
+  expect(input).toHaveAttribute('multiple')
+  fireEvent.change(input, { target: { files: [a, b] } })
+  pick('Your answers', c)
+  fireEvent.click(screen.getByRole('button', { name: 'Remove b.py' }))
+  pick('Assessment questions', file('q.txt'))
+  await screen.findByText(/text files will be used/i)
+  expect(vi.mocked(uploadFiles).mock.calls.at(-1)?.[1]).toEqual([a, c])
 })

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import AutoAdvance from './AutoAdvance'
+import AutoAdvance from '../../src/components/AutoAdvance'
 
 beforeEach(() => vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'performance'] }))
 afterEach(() => vi.useRealTimers())

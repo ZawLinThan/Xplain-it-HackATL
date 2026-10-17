@@ -1,16 +1,16 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, getQuestion, submitAnswer } from '../api/client'
-import { AppConfigContext, DEFAULT_CONFIG } from '../demoMode'
-import QuestionScreen from './QuestionScreen'
+import { ApiError, getQuestion, submitAnswer } from '../../src/api/client'
+import { AppConfigContext, DEFAULT_CONFIG } from '../../src/demoMode'
+import QuestionScreen from '../../src/screens/QuestionScreen'
 
-vi.mock('../api/client', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../api/client')>()
+vi.mock('../../src/api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/api/client')>()
   return { ...actual, getQuestion: vi.fn(), submitAnswer: vi.fn() }
 })
 
 // The real recorder needs a browser; this stand-in just lets the test "finish recording".
-vi.mock('../Recorder', () => ({
+vi.mock('../../src/Recorder', () => ({
   default: ({
     onComplete,
     hold,
