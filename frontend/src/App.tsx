@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useReducer, useState } from 'react'
 import { ApiError, createSession, getConfig } from './api/client'
 import { AppConfigContext, DEFAULT_CONFIG, DemoModeContext } from './demoMode'
+import { PageBrand } from './components/Presentation'
 import Recorder from './Recorder'
 import { useScreenShare } from './useScreenShare'
 import {
@@ -118,7 +119,7 @@ export default function App() {
       <div id="main">
         {state.screen === 'start' && <StartScreen screenReady={sharing.active} screenControl={screenControl} error={state.error} onStart={begin} />}
         {state.screen === 'loading' && <LoadingScreen />}
-        {state.screen === 'question' && !sharing.active && <main className="screen">{screenControl}</main>}
+        {state.screen === 'question' && !sharing.active && <main className="screen"><PageBrand />{screenControl}</main>}
         {state.screen === 'question' && sharing.active && state.sessionId && (
           <QuestionScreen
             key={state.index}

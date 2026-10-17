@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ApiError, getReport } from '../api/client'
 import type { QuestionResult, Report } from '../api/types'
+import { PageBrand } from '../components/Presentation'
 import Badge from '../components/Badge'
 import LoadingScreen from './LoadingScreen'
 
@@ -84,9 +85,11 @@ export default function ReportScreen({ sessionId, onRestart }: ReportScreenProps
   const we = report.weights.explanation
 
   return (
-    <main className="screen report">
+    <main className="results-page">
+      <PageBrand />
+      <div className="screen report results-content">
       <header>
-        <p className="eyebrow">Explain-It report</p>
+        <p className="eyebrow">Assessment results</p>
         <h1>{report.title}</h1>
       </header>
 
@@ -153,6 +156,7 @@ export default function ReportScreen({ sessionId, onRestart }: ReportScreenProps
       <div className="actions no-print">
         <button type="button" onClick={() => window.print()}>Print this report</button>
         <button type="button" className="primary" onClick={onRestart}>Start over</button>
+      </div>
       </div>
     </main>
   )

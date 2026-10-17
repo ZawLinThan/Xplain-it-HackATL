@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, getProfessorSession, getProfessorSessions } from '../api/client'
 import type { ProfessorQuestion, ProfessorSession, ProfessorSessions } from '../api/types'
+import { PageBrand } from '../components/Presentation'
 import { reasonsFor } from './professorFlags'
 
 const TOKEN_KEY = 'explainit.professorToken'
@@ -28,7 +29,8 @@ const errorText = (e: unknown) =>
 function TokenForm({ message, onToken }: { message: string; onToken: (token: string) => void }) {
   const [value, setValue] = useState('')
   return (
-    <main className="screen">
+    <main className="screen instructor-screen">
+      <PageBrand />
       <header>
         <p className="eyebrow">Explain-It · instructor</p>
         <h1>Instructor view</h1>
@@ -104,7 +106,8 @@ function Detail({ token, id, onBack, onAuth }: { token: string; id: string; onBa
 
   const pct = (v: number | null) => (v === null ? 'not graded yet' : `${Math.round(v * 100)}%`)
   return (
-    <main className="screen">
+    <main className="screen instructor-screen">
+      <PageBrand />
       <button type="button" className="link" onClick={onBack}>← All sessions</button>
       {error && <p role="alert" className="error">{error}</p>}
       {!data && !error && <p className="muted" role="status">Loading…</p>}
@@ -207,7 +210,8 @@ export default function ProfessorScreen() {
   if (openId) return <Detail token={token} id={openId} onBack={() => setOpenId(null)} onAuth={reject} />
 
   return (
-    <main className="screen wide">
+    <main className="screen wide instructor-screen">
+      <PageBrand />
       <header>
         <p className="eyebrow">Explain-It · instructor</p>
         <h1>Recent sessions</h1>

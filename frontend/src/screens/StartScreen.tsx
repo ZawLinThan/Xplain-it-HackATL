@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, uploadFiles } from '../api/client'
 import { MediaDenied, openMedia, stopStream } from '../api/media'
+import { Brand, SetupDialog } from '../components/Presentation'
 import GazeCalibration from '../components/GazeCalibration'
 import { setCalibration } from '../lookaway/calibration'
 import Badge from '../components/Badge'
@@ -27,6 +28,7 @@ type Upload =
   | { kind: 'failed'; message: string }
 
 export default function StartScreen({ error, onStart, screenReady = true, screenControl }: StartScreenProps) {
+  const [setupOpen, setSetupOpen] = useState(Boolean(error))
   const [calibrationVideo, setCalibrationVideo] = useState<HTMLVideoElement | null>(null)
   const [calibrated, setCalibrated] = useState(false)
   const closeCalibration = useCallback((success: boolean) => { setCalibrationVideo(null); setCalibrated(success) }, [])
@@ -35,6 +37,7 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
   const [checkError, setCheckError] = useState('')
   const [consent, setConsent] = useState(false)
   const [typedInfo, setTypedInfo] = useState(false)
+  const mediaRequestRef = useRef(0)
   const streamRef = useRef<MediaStream | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const config = useAppConfig()
@@ -80,7 +83,7 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
   }
 
   // Release the camera when this screen goes away.
-  useEffect(() => () => stopStream(streamRef.current), [])
+  useEffect(() => () => { mediaRequestRef.current++; stopStream(streamRef.current) }, [])
 
   useEffect(() => {
     if (check === 'ok' && hasCamera && videoRef.current && streamRef.current) {
@@ -88,7 +91,17 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
     }
   }, [check, hasCamera])
 
+  function closeSetup() {
+    mediaRequestRef.current++
+    stopStream(streamRef.current)
+    streamRef.current = null
+    setCalibrationVideo(null)
+    setCheck('idle')
+    setSetupOpen(false)
+  }
+
   async function runCheck() {
+    const request = ++mediaRequestRef.current
     setCalibration(null)
     setCalibrated(false)
     setCheck('checking')
@@ -96,10 +109,12 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
     stopStream(streamRef.current)
     try {
       const { stream, hasVideo } = await openMedia()
+      if (request !== mediaRequestRef.current) { stopStream(stream); return }
       streamRef.current = stream
       setHasCamera(hasVideo)
       setCheck('ok')
     } catch (e) {
+      if (request !== mediaRequestRef.current) return
       setCheckError(e instanceof MediaDenied ? e.message : 'Could not open the microphone.')
       setCheck('denied')
     }
@@ -109,15 +124,24 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
   const ready = check === 'ok' && consent && filesReady && screenReady
 
   return (
-    <main className="screen">
-      <header>
-        <p className="eyebrow">Explain-It</p>
-        <h1>Show that you understand your own code</h1>
-        <p className="lead">
-          You will hear three short questions about the answers you gave in a coding quiz. Answer
-          each one out loud, in your own words, in 40 seconds or less.
-        </p>
-      </header>
+    <main className="landing-page">
+      <div className="landing-content" inert={setupOpen}>
+        <header className="site-header"><Brand /></header>
+        <section className="hero">
+          <div className="hero-hint" aria-hidden="true"><span /><span /><span /></div>
+          <p className="eyebrow"> Show what you understand.</p>
+          <h1>You did it? <br />Then <span>show it!</span></h1>
+          <p className="hero-support">Answer a few questions about your assignment and explain the thinking behind your work.</p>
+          <button type="button" className="button" onClick={() => setSetupOpen(true)}> Start explaining <span className="button-arrow" aria-hidden="true">↗</span></button>
+        </section>
+      </div>
+      {setupOpen && <SetupDialog onClose={closeSetup}>
+        <div className="dialog-heading">
+          <div><p className="eyebrow">Before we begin</p><h2 id="setup-title">Prepare your assessment</h2></div>
+          <button className="icon-button" type="button" aria-label="Close setup" onClick={closeSetup}>×</button>
+        </div>
+        <p id="setup-description" className="muted">Your work, your explanation. Three spoken answers, up to 40 seconds each.</p>
+        <div className="setup-content">
 
       {error && (
         <p role="alert" className="error">
@@ -131,17 +155,17 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
           <input type="checkbox" checked={useSample} onChange={(e) => setUseSample(e.target.checked)} />
           <span>
             Use the sample quiz instead: two small Python functions, already loaded.{' '}
-            <Badge feature="preloadedSample" withLabel />
           </span>
         </label>
         <p className="muted">
-          Its code score is preset rather than run live. <Badge feature="problemScore" withLabel />
+          You must have uploaded your code on autonomous testing (GitHub Workflow/ Gradescope)
+          before taking this demo
         </p>
         {!useSample && (
           <div className="uploads">
             <p>
-              Upload your quiz questions and the answers you gave. The contents of every file are used to generate your
-              questions and expected answers. <Badge feature="fileUpload" withLabel />
+              Upload your quiz questions and the answers you gave. You will be tested on 
+              the code you wrote, meaning that your questions will not be the same as others.
             </p>
             <FileDrop
               label="Assessment questions"
@@ -268,6 +292,8 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
           </p>
         )}
       </div>
+        </div>
+      </SetupDialog>}
     </main>
   )
 }

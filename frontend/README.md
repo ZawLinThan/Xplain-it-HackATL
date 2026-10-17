@@ -74,3 +74,15 @@ Run the backend with `DEMO_MODE=1` and the dev server, then drive Chromium with 
 microphone and camera (`--use-fake-device-for-media-stream`,
 `--use-fake-ui-for-media-stream`) using Playwright. It walks start, three answers and the report.
 Playwright is not a project dependency; install it separately if you want to repeat the check.
+
+
+## Interface presentation
+
+The UI uses the supplied frontend ZIP's light landing/setup and results design, plus its
+animated dark assessment stage. The existing API client, session reducer, recorder, screen
+sharing, uploads, gaze calibration, report data, and instructor authorization remain in place.
+**Submit assignment** opens setup; **Start** keeps the original readiness requirements.
+Closing setup releases its camera/microphone preview and requires checking devices again.
+The assessment's **Reduce motion** control also respects the OS motion preference.
+Presentation tokens and source styles live in `src/styles/`; `migration.css` adapts the
+current feature components. The supplied ZIP's API/controller implementation is not used.

@@ -41,7 +41,10 @@ afterEach(() => {
 
 async function renderApp() {
   const { default: App } = await import('../src/App')
-  return render(<App />)
+  const result = render(<App />)
+  const submit = screen.queryByRole('button', { name: /submit assignment/i })
+  if (submit) fireEvent.click(submit)
+  return result
 }
 
 async function startQuiz() {
@@ -83,6 +86,7 @@ describe('App flow (mock mode)', () => {
 
     expect(await screen.findByText('81.3')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Start over' }))
+    fireEvent.click(await screen.findByRole('button', { name: /submit assignment/i }))
     expect(await screen.findByRole('button', { name: 'Check devices' })).toBeInTheDocument()
   })
 

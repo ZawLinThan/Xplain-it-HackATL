@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, getQuestion, submitAnswer } from '../api/client'
 import type { AnswerResult, QuestionPublic } from '../api/types'
 import AutoAdvance from '../components/AutoAdvance'
+import { StageBackdrop } from '../components/Presentation'
 import Badge from '../components/Badge'
 import GazeDebugOverlay from '../components/GazeDebugOverlay'
 import { useAppConfig } from '../demoMode'
@@ -113,7 +114,9 @@ export default function QuestionScreen({
   const answering = phase.kind === 'answering' && question !== null
 
   return (
-    <main className="screen">
+    <main className="assessment-stage active-round">
+      <StageBackdrop phase={phase.kind === 'uploading' ? 'processing' : phase.kind === 'upload-failed' || phase.kind === 'load-failed' ? 'error' : answering && reveal.done && speech.done ? 'listening' : 'ready'} />
+      <div className="round-content">
       <header>
         <p className="eyebrow">
           Question {index} of {total}
@@ -215,6 +218,7 @@ export default function QuestionScreen({
           />
         </section>
       )}
+      </div>
     </main>
   )
 }

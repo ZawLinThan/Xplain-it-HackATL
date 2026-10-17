@@ -5,15 +5,13 @@
 export type FeatureStatus = 'working' | 'simulated' | 'planned'
 
 export const FEATURES = {
-  preloadedSample: { label: 'Preloaded sample assessment', status: 'simulated' },
-  problemScore: { label: 'Problem score (preset, tests not run live)', status: 'simulated' },
   questionWriting: { label: 'LLM writes the questions', status: 'working' },
   spokenAnswers: { label: 'Spoken answers with a 40-second cap', status: 'working' },
   transcription: { label: 'Speech-to-text transcript', status: 'working' },
   grading: { label: 'Grading against expected answers', status: 'working' },
   lookAway: { label: 'Look-away count for your instructor', status: 'working' },
   typedAnswers: { label: 'Typed-answer accommodation', status: 'planned' },
-  fileUpload: { label: 'Upload your own files (source code, text, PDF and Word)', status: 'working' },
+
   instructorView: { label: 'Instructor view', status: 'working' },
 } as const satisfies Record<string, { label: string; status: FeatureStatus }>
 
