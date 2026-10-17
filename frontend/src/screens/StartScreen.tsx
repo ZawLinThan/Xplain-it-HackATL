@@ -144,7 +144,6 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
         <header className="site-header"><Brand /></header>
         <section className="hero hero-with-sculpture">
           <div className="hero-copy">
-            <div className="hero-hint" aria-hidden="true"><span /><span /><span /></div>
             <p className="eyebrow"> Show what you understand.</p>
             <h1>You did it? <br />Then <span>show it!</span></h1>
             <p className="hero-support">Answer a few questions about your assignment and explain the thinking behind your work.</p>
