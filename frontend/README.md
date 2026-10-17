@@ -32,6 +32,17 @@ Without them (or with no camera) the detector reports "not tracked" and the quiz
 gaze estimate uses fixed gains in `src/lookaway/gaze.ts`; tune them with `DEBUG_BORDERS=1` on the
 backend, which draws the red borders and a gaze dot, on the real webcam you will demo with.
 
+After **Check devices**, choose **Calibrate look-away detector**. Keep your head still and
+look at each of five targets, followed by a separate center check (about 13 seconds). The
+browser fits horizontal/vertical sensitivity, offsets, and axis coupling to those samples.
+Calibration is rejected when the targets cannot be distinguished or the center check fails.
+The mapping stays only in memory for this page; recalibrate after moving the camera or
+changing seating. Without this step, the detector uses its approximate fixed-gain mapping.
+
+The real tracker filters isolated spikes and smooths samples over about 100 ms. Raw values
+remain unclipped until calibration is applied. This is still an approximate webcam look-away
+detector; a fitted debug dot is not a guarantee of accurate screen coordinates.
+
 ## Instructor view
 
 `/?view=professor` asks for the instructor token (`PROFESSOR_TOKEN` on the backend, `demo` in demo

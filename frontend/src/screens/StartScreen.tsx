@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, uploadFiles } from '../api/client'
 import { MediaDenied, openMedia, stopStream } from '../api/media'
+import GazeCalibration from '../components/GazeCalibration'
+import { setCalibration } from '../lookaway/calibration'
 import Badge from '../components/Badge'
 import FileDrop from '../components/FileDrop'
 import FilesDrop from '../components/FilesDrop'
@@ -25,6 +27,9 @@ type Upload =
   | { kind: 'failed'; message: string }
 
 export default function StartScreen({ error, onStart, screenReady = true, screenControl }: StartScreenProps) {
+  const [calibrationVideo, setCalibrationVideo] = useState<HTMLVideoElement | null>(null)
+  const [calibrated, setCalibrated] = useState(false)
+  const closeCalibration = useCallback((success: boolean) => { setCalibrationVideo(null); setCalibrated(success) }, [])
   const [check, setCheck] = useState<Check>('idle')
   const [hasCamera, setHasCamera] = useState(false)
   const [checkError, setCheckError] = useState('')
@@ -84,6 +89,8 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
   }, [check, hasCamera])
 
   async function runCheck() {
+    setCalibration(null)
+    setCalibrated(false)
     setCheck('checking')
     setCheckError('')
     stopStream(streamRef.current)
@@ -197,6 +204,13 @@ export default function StartScreen({ error, onStart, screenReady = true, screen
             <p className="ok">Microphone ready. {hasCamera ? 'Camera ready.' : 'No camera found, audio only.'}</p>
           </div>
         )}
+        {check === 'ok' && hasCamera && config.gaze_tracking && (
+          <div>
+            <button type="button" onClick={() => setCalibrationVideo(videoRef.current)}>Calibrate look-away detector</button>
+            <p className="muted">{calibrated ? 'Calibration saved for this page. Recalibrate if you move the camera or change your seating.' : 'Look at five targets to fit the gaze estimate to your eyes and camera, then check the center. Takes about 13 seconds.'}</p>
+          </div>
+        )}
+        {calibrationVideo && <GazeCalibration video={calibrationVideo} onClose={closeCalibration} />}
         {check === 'denied' && (
           <div>
             <p role="alert" className="error">

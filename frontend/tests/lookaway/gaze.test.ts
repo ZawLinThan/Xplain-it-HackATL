@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { LM, estimateGaze, type Point } from '../../src/lookaway/gaze'
+import { LM, estimateGaze, estimateRawGaze, type Point } from '../../src/lookaway/gaze'
 
 /** A synthetic face looking straight at the camera, centred in the frame. */
-function face(over: { noseX?: number; noseY?: number; irisShift?: number } = {}): Point[] {
+function face(over: { noseX?: number; noseY?: number; irisShift?: number; irisShiftY?: number } = {}): Point[] {
   const lm: Point[] = Array.from({ length: 478 }, () => ({ x: 0.5, y: 0.5 }))
   lm[LM.cheekA] = { x: 0.4, y: 0.5 }
   lm[LM.cheekB] = { x: 0.6, y: 0.5 }
@@ -10,12 +10,17 @@ function face(over: { noseX?: number; noseY?: number; irisShift?: number } = {})
   lm[LM.chin] = { x: 0.5, y: 0.65 }
   lm[LM.noseTip] = { x: over.noseX ?? 0.5, y: over.noseY ?? 0.5 }
   const s = over.irisShift ?? 0
+  const sy = over.irisShiftY ?? 0
   lm[LM.eyeRightOuter] = { x: 0.42, y: 0.45 }
   lm[LM.eyeRightInner] = { x: 0.48, y: 0.45 }
-  lm[LM.irisRight] = { x: 0.45 + s, y: 0.45 }
+  lm[LM.irisRight] = { x: 0.45 + s, y: 0.45 + sy }
   lm[LM.eyeLeftInner] = { x: 0.52, y: 0.45 }
   lm[LM.eyeLeftOuter] = { x: 0.58, y: 0.45 }
-  lm[LM.irisLeft] = { x: 0.55 + s, y: 0.45 }
+  lm[LM.irisLeft] = { x: 0.55 + s, y: 0.45 + sy }
+  lm[LM.eyeRightUpper] = { x: 0.45, y: 0.44 }
+  lm[LM.eyeRightLower] = { x: 0.45, y: 0.46 }
+  lm[LM.eyeLeftUpper] = { x: 0.55, y: 0.44 }
+  lm[LM.eyeLeftLower] = { x: 0.55, y: 0.46 }
   return lm
 }
 
@@ -40,6 +45,23 @@ describe('estimateGaze', () => {
 
   it('eyes alone move the point too', () => {
     expect(estimateGaze(face({ irisShift: 0.02 }))!.gx).toBeLessThan(0.45)
+  })
+
+  it('uses vertical eye motion and ignores nearly closed eyelids', () => {
+    expect(estimateGaze(face({ irisShiftY: -0.006 }))!.gy).toBeCloseTo(0.05)
+    expect(estimateGaze(face({ irisShiftY: 0.006 }))!.gy).toBeCloseTo(0.95)
+    const closed = face({ irisShiftY: 0.006 })
+    closed[LM.eyeRightLower] = closed[LM.eyeRightUpper]
+    closed[LM.eyeLeftLower] = closed[LM.eyeLeftUpper]
+    expect(estimateGaze(closed)!.gy).toBeCloseTo(0.5)
+  })
+
+  it('preserves out-of-range raw values for calibration before clamping the display', () => {
+    const lm = face({ noseX: 0.9, noseY: 0.1 })
+    const raw = estimateRawGaze(lm)!
+    expect(raw.gx).toBeLessThan(0)
+    expect(raw.gy).toBeLessThan(0)
+    expect(estimateGaze(lm)).toEqual({ gx: 0, gy: 0 })
   })
 
   it('stays inside 0..1 and gives null for a broken face', () => {

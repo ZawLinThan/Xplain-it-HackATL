@@ -66,7 +66,7 @@ export class LookAwayMonitor {
 
   beginCounting(): void {
     if (this.counting) return
-    if (this.calibration.x.length >= MIN_CALIBRATION_SAMPLES) {
+    if (!this.tracker?.calibrated && this.calibration.x.length >= MIN_CALIBRATION_SAMPLES) {
       // the median, so a glance away while reading cannot move the centre
       this.offset = { x: median(this.calibration.x) - 0.5, y: median(this.calibration.y) - 0.5 }
     }

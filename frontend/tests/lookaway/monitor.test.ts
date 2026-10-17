@@ -81,6 +81,17 @@ describe('LookAwayMonitor', () => {
     expect(m.payload().events).toHaveLength(0)
   })
 
+  it('preserves a fitted screen center instead of re-centering it while reading', async () => {
+    const t = Object.assign(new ScriptedTracker(), { calibrated: true })
+    const c = clock()
+    const m = new LookAwayMonitor(t, {}, c.now)
+    await m.attach(video)
+    feed(t, c, { gx: 0.3, gy: 0.7 }, 1000)
+    m.beginCounting()
+    feed(t, c, { gx: 0.5, gy: 0.5 }, 200)
+    expect(m.getSnapshot().sample).toEqual({ gx: 0.5, gy: 0.5 })
+  })
+
   it('reports not tracked, never zero, when the tracker cannot run', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const t = new ScriptedTracker()

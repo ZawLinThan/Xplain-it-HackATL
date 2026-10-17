@@ -5,6 +5,7 @@ export const GAZE = {
   yawGain: 2.2, // head turn: nose offset from the cheek midpoint, as a share of face width
   pitchGain: 2.2, // head tilt: nose offset from the forehead-chin midpoint, as a share of face height
   irisGain: 1.4, // eyes only: iris offset inside the eye corners, as a share of eye width
+  verticalIrisGain: 4.5,
   positionGain: 0.6, // where the face sits in the camera frame
 } as const
 
@@ -24,6 +25,10 @@ export const LM = {
   eyeRightInner: 133,
   eyeLeftInner: 362,
   eyeLeftOuter: 263,
+  eyeRightUpper: 159,
+  eyeRightLower: 145,
+  eyeLeftUpper: 386,
+  eyeLeftLower: 374,
   irisRight: 468,
   irisLeft: 473,
 } as const
@@ -39,6 +44,12 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
  * student's right.
  */
 export function estimateGaze(lm: readonly Point[]): GazeSample | null {
+  const raw = estimateRawGaze(lm)
+  return raw ? { gx: clamp01(raw.gx), gy: clamp01(raw.gy) } : null
+}
+
+/** Preserve the full range until the monitor has removed the student's baseline. */
+export function estimateRawGaze(lm: readonly Point[]): GazeSample | null {
   const need = [LM.noseTip, LM.forehead, LM.chin, LM.cheekA, LM.cheekB]
   if (need.some((i) => !lm[i])) return null
   const nose = lm[LM.noseTip]
@@ -64,7 +75,22 @@ export function estimateGaze(lm: readonly Point[]): GazeSample | null {
   }
   if (n > 0) iris /= n
 
+  let vertical = 0
+  let visibleEyes = 0
+  for (const [i, a, b, top, bottom] of [
+    [LM.irisRight, LM.eyeRightOuter, LM.eyeRightInner, LM.eyeRightUpper, LM.eyeRightLower],
+    [LM.irisLeft, LM.eyeLeftInner, LM.eyeLeftOuter, LM.eyeLeftUpper, LM.eyeLeftLower],
+  ]) {
+    if ([i, a, b, top, bottom].some((j) => !lm[j] || !Number.isFinite(lm[j].x) || !Number.isFinite(lm[j].y))) continue
+    const width = Math.abs(lm[b].x - lm[a].x)
+    if (width < 1e-3 || (lm[bottom].y - lm[top].y) / width < 0.1) continue
+    const t = (lm[i].x - lm[a].x) / (lm[b].x - lm[a].x)
+    vertical += (lm[i].y - (lm[a].y + t * (lm[b].y - lm[a].y))) / width
+    visibleEyes++
+  }
+  if (visibleEyes) vertical /= visibleEyes
+
   const gxImage = 0.5 + GAZE.yawGain * yaw + GAZE.irisGain * iris + GAZE.positionGain * (nose.x - 0.5)
-  const gy = 0.5 + GAZE.pitchGain * pitch + GAZE.positionGain * (nose.y - 0.5)
-  return { gx: clamp01(1 - gxImage), gy: clamp01(gy) }
+  const gy = 0.5 + GAZE.pitchGain * pitch + GAZE.verticalIrisGain * vertical + GAZE.positionGain * (nose.y - 0.5)
+  return { gx: 1 - gxImage, gy }
 }

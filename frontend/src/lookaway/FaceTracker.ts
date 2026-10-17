@@ -4,6 +4,7 @@ import type { GazeSample } from './types'
 export interface FaceTracker {
   /** Start sending samples (null when no face is found). Rejects if it cannot run. */
   start(video: HTMLVideoElement, onSample: (sample: GazeSample | null) => void): Promise<void>
+  readonly calibrated?: boolean
   stop(): void
   /** The monitor calls this when the answer timer starts (a scripted tracker uses it as time zero). */
   countingStarted?(): void
