@@ -38,22 +38,9 @@ export default function GazeDebugOverlay({ monitor }: { monitor: LookAwayMonitor
           }}
         />
       )}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: '14%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          padding: '4px 10px',
-          width: 'min(680px, calc(100vw - 32px))',
-          background: '#300',
-          color: '#fff',
-          font: '12px monospace',
-          zIndex: 10000,
-        }}
-      >
+      <div className="gaze-debug-log">
         look-aways {snap.count} · duration entries {snap.durations.length}
-        <div style={{ maxHeight: '18vh', overflow: 'auto', marginTop: 4 }}>
+        <div style={{ maxHeight: '64px', overflow: 'auto', marginTop: 4 }}>
           <div>Normal log: {snap.events.length ? snap.events.slice(-4).map((event) => `${(event.t_ms / 1000).toFixed(1)}s ${event.side}`).join(' · ') : 'none'}</div>
           <div>Duration log: {snap.durations.length ? snap.durations.slice(-4).map((event) => `${(event.t_ms / 1000).toFixed(1)}s ${event.side} (${(event.duration_ms / 1000).toFixed(1)}s)`).join(' · ') : 'none'}</div>
         </div>
