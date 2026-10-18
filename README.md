@@ -49,7 +49,7 @@ in `backend/.env` as `GROQ_API_KEY`. Leave `DEMO_MODE=0`.
 The screen shows the same Working / Simulated / Planned labels, and switches to Simulated by
 itself when the server is in demo mode.
 
-## How the score works
+## How the score works 
 
 - P = problem points earned / total (preset, never from an LLM)
 - E = mean of the three question scores (0 to 5 each) / 5
