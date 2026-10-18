@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 /** Speak before recording, with an explicit way past unavailable or blocked audio playback. */
-export function useQuestionSpeech(text: string | null) {
+export function useQuestionSpeech(text: string | null, onReadAloud?: () => void) {
   const supported = typeof Audio !== 'undefined'
   const [finished, setFinished] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [attempt, setAttempt] = useState(0)
   const cancelRef = useRef<() => void>(() => undefined)
+
+  const onReadRef = useRef(onReadAloud)
+  useEffect(() => { onReadRef.current = onReadAloud }, [onReadAloud])
 
   useEffect(() => {
     if (!text || !supported) return
@@ -30,7 +33,12 @@ export function useQuestionSpeech(text: string | null) {
       setError('The question could not be read aloud. Try reading it aloud again, or continue with the text.')
       cleanup()
     }
-    audio.onended = () => { if (alive) setFinished(text); cleanup() }
+    audio.onended = () => {
+      if (!alive) return
+      setFinished(text)
+      cleanup()
+      onReadRef.current?.()
+    }
     audio.onerror = fail
     const timeout = window.setTimeout(fail, 90000)
     cancelRef.current = () => { cleanup(); setFinished(text) }

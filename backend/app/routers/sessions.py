@@ -107,6 +107,22 @@ def get_question(session_id: str, n: int) -> QuestionPublic:
     )
 
 
+@router.post("/sessions/{session_id}/questions/{n}/read-aloud", status_code=200)
+def question_read_aloud(session_id: str, n: int) -> dict[str, bool]:
+    """Log the expected answer after the browser reports completed question playback."""
+    _require_session(session_id)
+    question = _require_question(session_id, n)
+    if question["started_at"] is None:
+        raise AppError(409, "question_not_started", "Ask for the question before reading it aloud.")
+    print("[model-answer] " + json.dumps({
+        "session_id": session_id,
+        "question": n,
+        "text": question["text"],
+        "model_answer": question["model_answer"],
+    }), flush=True)
+    return {"ok": True}
+
+
 def _save_upload(upload: UploadFile, dest: Path) -> None:
     size = 0
     with dest.open("wb") as handle:

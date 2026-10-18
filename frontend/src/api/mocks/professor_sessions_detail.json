@@ -2,7 +2,7 @@
   "demo-flagged": {
     "session_id": "demo-flagged",
     "created_at": 1760000000,
-    "title": "Intro Python Quiz 3: strings and lists",
+    "title": "Intro Python Quiz: addition and comparisons",
     "problem_score": 0.7333,
     "explanation_score": 0.9333,
     "final_score": 81.3,
@@ -14,7 +14,7 @@
     "questions": [
       {
         "n": 1,
-        "text": "In count_vowels you stored the vowels in a set. Why a set?",
+        "text": "In add_numbers, why do you use return a + b?",
         "answered": true,
         "transcript": "I used a set because membership checks are fast.",
         "score": 5,
@@ -88,7 +88,7 @@
   "demo-clean": {
     "session_id": "demo-clean",
     "created_at": 1759990000,
-    "title": "Intro Python Quiz 3: strings and lists",
+    "title": "Intro Python Quiz: addition and comparisons",
     "problem_score": 0.7333,
     "explanation_score": 0.7333,
     "final_score": 73.3,
@@ -100,7 +100,7 @@
     "questions": [
       {
         "n": 1,
-        "text": "In count_vowels you stored the vowels in a set. Why a set?",
+        "text": "In add_numbers, why do you use return a + b?",
         "answered": true,
         "transcript": "A set is quick to search.",
         "score": 4,
@@ -153,7 +153,7 @@
   "demo-untracked": {
     "session_id": "demo-untracked",
     "created_at": 1759980000,
-    "title": "Intro Python Quiz 3: strings and lists",
+    "title": "Intro Python Quiz: addition and comparisons",
     "problem_score": 0.7333,
     "explanation_score": 0.1333,
     "final_score": 49.3,
@@ -165,7 +165,7 @@
     "questions": [
       {
         "n": 1,
-        "text": "In count_vowels you stored the vowels in a set. Why a set?",
+        "text": "In add_numbers, why do you use return a + b?",
         "answered": true,
         "transcript": "Um, it is faster.",
         "score": 1,

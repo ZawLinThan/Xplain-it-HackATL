@@ -104,7 +104,6 @@ export default function App() {
     <section className="card" aria-labelledby="screen-share-title">
       <h2 id="screen-share-title">Share your entire screen</h2>
       <p>Select Entire Screen in the browser dialog before starting. Keep sharing throughout the assessment.</p>
-      <p className="muted">The screen stream stays in this browser. It is not recorded or uploaded.</p>
       {sharing.active ? <p className="ok">Entire screen sharing is active.</p> : (
         <button type="button" disabled={sharing.requesting} onClick={() => void sharing.request()}>
           {sharing.requesting ? 'Waiting for screen sharing…' : 'Share entire screen'}

@@ -193,3 +193,9 @@ export function checkVoice(sessionId: string, question: number, sequence: number
     method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: pcm, signal,
   })
 }
+
+/** Notify the backend after audio playback; the model answer stays on the server. */
+export function questionReadAloud(sessionId: string, n: number): Promise<{ ok: boolean }> {
+  if (MOCK) return Promise.resolve({ ok: true })
+  return request(`/sessions/${encodeURIComponent(sessionId)}/questions/${n}/read-aloud`, { method: 'POST' })
+}

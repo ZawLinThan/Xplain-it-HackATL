@@ -4,38 +4,38 @@
     "questions": [
       {
         "type": "why",
-        "text": "In count_vowels you stored the vowels in a set. Why did you choose a set instead of a list or a plain string?",
+        "text": "In add_numbers, why do you use return a + b?",
         "expected": {
           "key_ideas": [
-            "Checking membership in a set is fast, about constant time",
-            "Order and duplicates do not matter for a group of vowels",
-            "A list or string would also work for five letters, so the set mainly states the intent"
+            "a + b adds the two input numbers",
+            "return sends the sum back to the caller",
+            "Printing a value is different from returning it"
           ],
-          "model_answer": "I used a set because I only need to ask whether a letter is a vowel. Membership checks on a set are fast and the order of the vowels does not matter. A list or string would also work for just five letters, but a set shows the intent."
+          "model_answer": "a + b adds the two numbers. return sends that sum back to the code that called the function, so it can use the answer. Printing would only display it."
         }
       },
       {
         "type": "trace",
-        "text": "In remove_duplicates, walk me through what seen and result hold after the loop has processed the list 3, 1, 3, 2.",
+        "text": "What does add_numbers(2, 3) return? Explain the steps.",
         "expected": {
           "key_ideas": [
-            "seen ends up holding 3, 1 and 2",
-            "result ends up as the list 3, 1, 2",
-            "The second 3 is skipped because it is already in seen"
+            "a is 2 and b is 3",
+            "2 + 3 equals 5",
+            "The function returns 5"
           ],
-          "model_answer": "seen ends up as the set containing 3, 1 and 2, and result is the list 3, 1, 2. When the second 3 arrives the check says it is already in seen, so it is not added to result again."
+          "model_answer": "The function receives a as 2 and b as 3. It adds them to get 5, then returns 5."
         }
       },
       {
         "type": "change",
-        "text": "Two of your tests failed when the list contained other lists, like [[1], [1]]. Why did that fail, and how could you change your code to handle it?",
+        "text": "is_positive currently uses number >= 0. What does it return for 0, and how would you fix it so only numbers greater than zero return True?",
         "expected": {
           "key_ideas": [
-            "Lists are unhashable, so they cannot be added to a set",
-            "The error is raised by the membership check or the add on seen",
-            "A fix is to track seen items in a list, or convert inner lists to tuples"
+            "The current code returns True for zero",
+            "Zero is not greater than zero",
+            "Change >= to > and test positive, negative and zero inputs"
           ],
-          "model_answer": "A set needs hashable items and a list is not hashable, so checking or adding it to seen raises a TypeError. I could keep seen as a list, which is slower but works for any item, or convert inner lists to tuples before storing them."
+          "model_answer": "It returns True for zero because >= includes equality. I would change it to number > 0. I would test 1, -1 and 0, expecting True, False and False."
         }
       }
     ]
@@ -43,25 +43,25 @@
   "students": {
     "strong": {
       "transcripts": [
-        "I used a set because I only need to check if a letter is a vowel. Membership checks in a set are fast and the order does not matter, though a list would also work for five letters.",
-        "After the loop seen holds 3, 1 and 2 and result is 3, 1, 2. The second three is skipped because it is already in seen.",
-        "Lists are not hashable so putting one in a set raises a TypeError. I could keep seen as a list or convert the inner lists to tuples first."
+        "a + b adds the two numbers. return sends that sum back to the code that called the function, so it can use the answer. Printing would only display it.",
+        "The function receives a as 2 and b as 3. It adds them to get 5, then returns 5.",
+        "It returns True for zero because >= includes equality. I would change it to number > 0. I would test 1, -1 and 0, expecting True, False and False."
       ],
       "grades": [
         {
           "index": 1,
           "score": 5,
-          "feedback": "Covers fast membership checks and why order does not matter, and notes a list would also work."
+          "feedback": "Explains addition, returning a value and how printing differs."
         },
         {
           "index": 2,
           "score": 5,
-          "feedback": "Traces both seen and result correctly and explains the skipped duplicate."
+          "feedback": "Correctly traces the inputs, addition and returned value."
         },
         {
           "index": 3,
           "score": 4,
-          "feedback": "Names unhashable lists and both fixes; does not say where the error is raised."
+          "feedback": "Identifies the zero case and correct comparison; could describe more tests."
         }
       ]
     },

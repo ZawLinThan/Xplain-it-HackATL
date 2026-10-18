@@ -59,7 +59,7 @@ export default function NeuralPreview() {
         {mode === 'assessment' && <div className="neural-reading-veil" style={{ position: 'absolute' }} />}
         {mode === 'assessment' && (
           <p style={{ position: 'absolute', left: '50%', top: '44%', transform: 'translate(-50%, -50%)', width: 'min(860px, 86vw)', textAlign: 'center', fontSize: 'clamp(28px, 3.4vw, 46px)', lineHeight: 1.27, letterSpacing: '-.035em', margin: 0 }}>
-            In remove_duplicates, walk me through what seen and result hold after the loop has processed the list 3, 1, 3, 2.
+            What does add_numbers(2, 3) return? Explain the steps.
           </p>
         )}
       </div>
