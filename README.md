@@ -79,6 +79,35 @@ check the detector is working.
 
 Tip: record the screen once beforehand as a fallback in case the venue Wi-Fi fails.
 
+## Vercel services deployment
+
+Import this repository as one Vercel project with the repository root as the Root Directory.
+The root `vercel.json` builds `backend` (FastAPI, `app.main:app`) and `frontend` (Vite).
+Public `/api/*` requests reach FastAPI with the original path intact; everything else
+reaches the frontend. Existing backend routes already use `/api/v1`.
+
+No service bindings are needed: the frontend runs in the browser, calls the public
+same-origin API, and has no server function that can consume a runtime binding. The backend
+only calls external Groq/ElevenLabs APIs and a local subprocess, not another deployed service.
+Never put private binding URLs or API keys in `VITE_*` variables.
+
+Leave `VITE_API_URL` unset (or empty) in Vercel. Set server credentials such as
+`GROQ_API_KEY`, `ELEVENLABS_API_KEY`, and `PROFESSOR_TOKEN` in project environment settings
+as needed; see `backend/.env.example`. Do not copy local storage path overrides to Vercel.
+For local integration testing, run `vercel dev` from the repository root (or
+`vercel dev -L` without cloud authentication). Check `/api/v1/health` and the browser's
+session, upload, and speech requests. Running Vite directly instead proxies `/api` to
+the backend on port 8000. An existing `frontend/.env` with `VITE_API_URL` overrides this.
+
+Deployment limitations: Vercel uses `/tmp/vdemo` for the existing SQLite database,
+audio, and uploads by default. These files are ephemeral and are not shared between
+function instances; sessions can disappear or be unavailable on later requests.
+Durable deployment requires replacing local storage with shared persistence.
+Audio processing also requires packaged `ffmpeg` and `ffprobe`; this configuration does
+not supply them. Optional voice verification requires its separate Python environment,
+model files, and in-memory reference state, so it is not configured for distributed
+Functions. Do not treat this routing setup as a production-ready assessment backend.
+
 ## Tests
 
 ```sh

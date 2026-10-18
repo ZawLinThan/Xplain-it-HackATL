@@ -23,7 +23,7 @@ describe('api client', () => {
     )
     const session = await createSession()
     expect(session.session_id).toBe('abc')
-    expect(String(spy.mock.calls[0][0])).toBe('http://localhost:8000/api/v1/sessions')
+    expect(String(spy.mock.calls[0][0])).toBe('/api/v1/sessions')
     expect(spy.mock.calls[0][1]?.method).toBe('POST')
   })
 
@@ -32,7 +32,7 @@ describe('api client', () => {
       respond(200, { index: 2, total: 3, text: 'Q', max_seconds: 40 }),
     )
     expect((await getQuestion('s 1', 2)).index).toBe(2)
-    expect(String(spy.mock.calls[0][0])).toBe('http://localhost:8000/api/v1/sessions/s%201/questions/2')
+    expect(String(spy.mock.calls[0][0])).toBe('/api/v1/sessions/s%201/questions/2')
   })
 
   it('maps the shared error shape to ApiError', async () => {
@@ -68,7 +68,7 @@ describe('api client', () => {
     const result = await submitAnswer('s1', 3, new Blob(['audio'], { type: 'audio/webm' }))
     expect(result.transcript).toBe('hi')
     const [url, init] = spy.mock.calls[0]
-    expect(String(url)).toBe('http://localhost:8000/api/v1/sessions/s1/questions/3/answer')
+    expect(String(url)).toBe('/api/v1/sessions/s1/questions/3/answer')
     const form = init?.body as FormData
     expect(form.get('consent')).toBe('true')
     expect(form.get('audio')).toBeInstanceOf(Blob)
@@ -82,7 +82,7 @@ describe('api client', () => {
     const q = new File(['q'], 'q.txt')
     const a = new File(['a'], 'a.py')
     expect((await uploadFiles(q, [a])).upload_id).toBe('u1')
-    expect(String(spy.mock.calls[0][0])).toBe('http://localhost:8000/api/v1/uploads')
+    expect(String(spy.mock.calls[0][0])).toBe('/api/v1/uploads')
     const form = spy.mock.calls[0][1]?.body as FormData
     expect((form.get('questions_file') as File).name).toBe('q.txt')
     expect((form.get('answers_file') as File).name).toBe('a.py')
@@ -116,7 +116,7 @@ describe('api client', () => {
     )
     await getProfessorSessions('tok')
     expect(spy.mock.calls[0][1]?.headers).toEqual({ 'X-Professor-Token': 'tok' })
-    expect(String(spy.mock.calls[0][0])).toBe('http://localhost:8000/api/v1/professor/sessions')
+    expect(String(spy.mock.calls[0][0])).toBe('/api/v1/professor/sessions')
     spy.mockImplementation(() => respond(401, { error: { code: 'unauthorized', message: 'Nope.' } }))
     await expect(getProfessorSession('bad', 's1')).rejects.toMatchObject({ status: 401, code: 'unauthorized' })
   })

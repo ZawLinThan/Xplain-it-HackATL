@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { API_BASE } from './api/base'
 
 /** Speak before recording, with an explicit way past unavailable or blocked audio playback. */
 export function useQuestionSpeech(text: string | null, onReadAloud?: () => void) {
@@ -42,8 +43,7 @@ export function useQuestionSpeech(text: string | null, onReadAloud?: () => void)
     audio.onerror = fail
     const timeout = window.setTimeout(fail, 90000)
     cancelRef.current = () => { cleanup(); setFinished(text) }
-    const base = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-    void fetch(`${base}/api/v1/speech`, {
+    void fetch(`${API_BASE}/speech`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
