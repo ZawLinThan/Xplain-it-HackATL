@@ -9,12 +9,12 @@ so a refresh resumes.
 ```sh
 npm install
 cp .env.example .env
-npm run dev          # http://localhost:5173, expects the backend on VITE_API_URL
+npm run dev          # http://localhost:5173, proxies /api to localhost:8000
 ```
 
 | Variable | Meaning |
 | --- | --- |
-| `VITE_API_URL` | Backend address (default http://localhost:8000) |
+| `VITE_API_URL` | Optional public backend origin (default: same-origin /api/v1) |
 | `VITE_MOCK=1` | Canned data from `src/api/mocks`, no backend. Try `?mock=weak` or `?mock=partial` |
 | `VITE_FAKE_GAZE=<n>` | Scripted look-aways (n per answer) for demos and tests; no camera model needed |
 | `VITE_MOCK_FAST=1` | Makes mock mode instant (used by tests) |

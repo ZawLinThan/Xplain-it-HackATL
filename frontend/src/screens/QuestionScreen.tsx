@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ApiError, getQuestion, submitAnswer } from '../api/client'
+import { ApiError, getQuestion, submitAnswer, questionReadAloud } from '../api/client'
 import type { AnswerResult, QuestionPublic } from '../api/types'
 import AutoAdvance from '../components/AutoAdvance'
 import { StageBackdrop } from '../components/Presentation'
@@ -55,7 +55,11 @@ export default function QuestionScreen({
   const lookRef = useRef<LookawayPayload | undefined>(undefined)
   const config = useAppConfig()
   const [monitor] = useState(() => new LookAwayMonitor(createTracker(config.gaze_tracking)))
-  const speech = useQuestionSpeech(question?.text ?? null)
+  const speech = useQuestionSpeech(question?.text ?? null, () => {
+    void questionReadAloud(sessionId, index).catch(() => {
+      console.warn('Could not notify the backend that question playback finished.')
+    })
+  })
   const reveal = useWordReveal(question?.text ?? null)
 
   useEffect(() => () => monitor.dispose(), [monitor])

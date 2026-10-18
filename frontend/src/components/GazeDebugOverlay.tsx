@@ -1,25 +1,17 @@
 import { useSyncExternalStore } from 'react'
-import { DEFAULT_OPTIONS } from '../lookaway/counter'
 import type { LookAwayMonitor } from '../lookaway'
 
 /**
- * Developer check (backend DEBUG_BORDERS=1): shows the invisible look-away borders in red, the
- * current gaze point and the running count. Never rendered for students.
+ * Developer check (backend DEBUG_BORDERS=1): shows the current gaze point and
+ * running logs without drawing look-away boundaries.
  */
 export default function GazeDebugOverlay({ monitor }: { monitor: LookAwayMonitor }) {
   const snap = useSyncExternalStore(
     (cb) => monitor.subscribe(cb),
     () => monitor.getSnapshot(),
   )
-  const pct = `${DEFAULT_OPTIONS.band * 100}%`
-  const edge = '2px solid rgba(255, 45, 45, 0.95)'
-  const band = { position: 'fixed', background: 'transparent', pointerEvents: 'none', zIndex: 9999 } as const
   return (
     <div data-testid="gaze-debug" aria-hidden="true">
-      <div style={{ ...band, top: 0, left: 0, right: 0, height: pct, borderBottom: edge }} />
-      <div style={{ ...band, bottom: 0, left: 0, right: 0, height: pct, borderTop: edge }} />
-      <div style={{ ...band, top: 0, bottom: 0, left: 0, width: pct, borderRight: edge }} />
-      <div style={{ ...band, top: 0, bottom: 0, right: 0, width: pct, borderLeft: edge }} />
       {snap.sample && (
         <div
           style={{

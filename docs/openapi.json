@@ -129,6 +129,62 @@
         }
       }
     },
+    "/api/v1/sessions/{session_id}/questions/{n}/read-aloud": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Question Read Aloud",
+        "description": "Log the expected answer after the browser reports completed question playback.",
+        "operationId": "question_read_aloud_api_v1_sessions__session_id__questions__n__read_aloud_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "n",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "N"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Question Read Aloud Api V1 Sessions  Session Id  Questions  N  Read Aloud Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sessions/{session_id}/questions/{n}/answer": {
       "post": {
         "tags": [
@@ -529,6 +585,43 @@
                   "$ref": "#/components/schemas/VoiceCheckResult"
                 }
               }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/speech": {
+      "post": {
+        "tags": [
+          "speech"
+        ],
+        "summary": "Question Speech",
+        "operationId": "question_speech_api_v1_speech_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionSpeechIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "audio/mpeg": {}
             }
           },
           "422": {
@@ -1131,6 +1224,21 @@
           "feedback"
         ],
         "title": "QuestionResult"
+      },
+      "QuestionSpeechIn": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "QuestionSpeechIn"
       },
       "Report": {
         "properties": {

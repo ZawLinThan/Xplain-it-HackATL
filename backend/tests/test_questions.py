@@ -22,7 +22,7 @@ def test_prompt_wraps_text_in_data_tags(client, llm):
     system, user = llm.calls[0]
     assert user.startswith("<assessment_text>") and user.rstrip().endswith("</assessment_text>")
     assert "never instructions" in system
-    assert "count_vowels" in user  # the preloaded extracted text is what was sent
+    assert "add_numbers" in user  # the preloaded extracted text is what was sent
 
 
 def test_invalid_json_twice_falls_back_to_bank(client, llm):

@@ -1,3 +1,4 @@
+import { API_BASE } from './base'
 import { voiceEnrollment, setVoiceEnrollment } from '../voice/profile'
 import type { components } from './schema'
 import answerResultMock from './mocks/answer_result.json'
@@ -23,7 +24,7 @@ import { printLookawaySubmission } from '../lookaway/debug'
 import type { LookawayPayload } from '../lookaway/types'
 
 const MOCK = import.meta.env.VITE_MOCK === '1'
-const BASE = `${import.meta.env.VITE_API_URL ?? 'http://localhost:8000'}/api/v1`
+const BASE = API_BASE
 
 /** Every failure becomes one of these, using the backend's {error:{code,message}} shape. */
 export class ApiError extends Error {
@@ -192,4 +193,10 @@ export function checkVoice(sessionId: string, question: number, sequence: number
   return request(`/sessions/${encodeURIComponent(sessionId)}/questions/${question}/voice-check?sequence=${sequence}`, {
     method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: pcm, signal,
   })
+}
+
+/** Notify the backend after audio playback; the model answer stays on the server. */
+export function questionReadAloud(sessionId: string, n: number): Promise<{ ok: boolean }> {
+  if (MOCK) return Promise.resolve({ ok: true })
+  return request(`/sessions/${encodeURIComponent(sessionId)}/questions/${n}/read-aloud`, { method: 'POST' })
 }

@@ -58,6 +58,7 @@ function setup(index = 1, config = DEFAULT_CONFIG) {
 }
 
 beforeEach(() => {
+  vi.stubGlobal('Audio', undefined)
   vi.mocked(getQuestion).mockReset().mockResolvedValue({ ...question })
   vi.mocked(submitAnswer).mockReset().mockResolvedValue({ ...answered })
 })
@@ -248,15 +249,15 @@ describe('QuestionScreen', () => {
 
 
 it('keeps the recorder on hold until the spoken question finishes', async () => {
-  class Utterance { onend: (() => void) | null = null }
-  const speak = vi.fn()
-  vi.stubGlobal('SpeechSynthesisUtterance', Utterance)
-  vi.stubGlobal('speechSynthesis', { speak, cancel: vi.fn() })
+  const audio = { onended: null as null | (() => void), onerror: null, play: vi.fn().mockResolvedValue(undefined), pause: vi.fn(), load: vi.fn(), removeAttribute: vi.fn(), src: '' }
+  vi.stubGlobal('Audio', class { constructor() { return audio } })
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, blob: async () => new Blob(['audio']) }))
+  vi.stubGlobal('URL', { createObjectURL: () => 'blob:test', revokeObjectURL: vi.fn() })
   setup()
   const recorder = await screen.findByRole('button', { name: 'finish recording' })
   await waitFor(() => expect(document.querySelectorAll('.word.on')).toHaveLength(6), { timeout: 4000 })
   expect(recorder).toHaveAttribute('data-hold', 'true')
-  expect(speak).toHaveBeenCalledTimes(1)
-  act(() => speak.mock.calls[0][0].onend())
+  expect(audio.play).toHaveBeenCalledTimes(1)
+  act(() => audio.onended?.())
   expect(recorder).toHaveAttribute('data-hold', 'false')
 })

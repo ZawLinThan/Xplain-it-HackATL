@@ -19,11 +19,16 @@ def env_flag(name: str) -> bool:
 
 
 def database_path() -> str:
-    return os.getenv("DATABASE_PATH", str(BACKEND_DIR / "vdemo.db"))
+    return os.getenv("DATABASE_PATH", str(_storage_dir() / "vdemo.db"))
+
+
+def _storage_dir() -> Path:
+    # Function bundles are read-only; /tmp is writable but instance-local and ephemeral.
+    return Path("/tmp/vdemo") if os.getenv("VERCEL") == "1" else BACKEND_DIR
 
 
 def audio_dir() -> Path:
-    return Path(os.getenv("AUDIO_DIR", str(BACKEND_DIR / "audio")))
+    return Path(os.getenv("AUDIO_DIR", str(_storage_dir() / "audio")))
 
 
 def retain_audio() -> bool:
@@ -52,7 +57,7 @@ def session_ttl_hours() -> float:
 
 
 def upload_dir() -> Path:
-    return Path(os.getenv("UPLOAD_DIR", str(BACKEND_DIR / "uploads")))
+    return Path(os.getenv("UPLOAD_DIR", str(_storage_dir() / "uploads")))
 
 
 def max_upload_bytes() -> int:

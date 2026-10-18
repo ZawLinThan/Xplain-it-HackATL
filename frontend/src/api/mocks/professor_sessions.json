@@ -4,7 +4,7 @@
     {
       "session_id": "demo-flagged",
       "created_at": 1760000000,
-      "title": "Intro Python Quiz 3: strings and lists",
+      "title": "Intro Python Quiz: addition and comparisons",
       "answered": 3,
       "completed": true,
       "final_score": 81.3,
@@ -17,7 +17,7 @@
     {
       "session_id": "demo-clean",
       "created_at": 1759990000,
-      "title": "Intro Python Quiz 3: strings and lists",
+      "title": "Intro Python Quiz: addition and comparisons",
       "answered": 3,
       "completed": true,
       "final_score": 73.3,
@@ -30,7 +30,7 @@
     {
       "session_id": "demo-untracked",
       "created_at": 1759980000,
-      "title": "Intro Python Quiz 3: strings and lists",
+      "title": "Intro Python Quiz: addition and comparisons",
       "answered": 3,
       "completed": true,
       "final_score": 49.3,

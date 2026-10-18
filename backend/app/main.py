@@ -13,7 +13,7 @@ from fastapi.openapi.utils import get_openapi
 from . import db, voice as voice_service
 from .errors import install_handlers
 from .schemas import LookawayIn
-from .routers import professor, sessions, uploads, voice
+from .routers import professor, sessions, uploads, voice, speech
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logging.getLogger("httpx").setLevel(logging.WARNING)  # request URLs are noise
@@ -79,6 +79,7 @@ app.include_router(sessions.router)
 app.include_router(uploads.router)
 app.include_router(professor.router)
 app.include_router(voice.router)
+app.include_router(speech.router)
 
 
 @app.get("/api/v1/health", tags=["health"])

@@ -5,7 +5,7 @@ import type { FaceTracker } from '../../src/lookaway/FaceTracker'
 import GazeDebugOverlay from '../../src/components/GazeDebugOverlay'
 
 describe('GazeDebugOverlay', () => {
-  it('draws four red borders, the gaze dot and the count, and is hidden from assistive tech', async () => {
+  it('shows the gaze dot and count without boundary lines, and is hidden from assistive tech', async () => {
     let emit: Parameters<FaceTracker['start']>[1] = () => undefined
     const tracker: FaceTracker = {
       start: vi.fn((_v, cb) => {
@@ -20,7 +20,7 @@ describe('GazeDebugOverlay', () => {
     render(<GazeDebugOverlay monitor={monitor} />)
     const root = screen.getByTestId('gaze-debug')
     expect(root).toHaveAttribute('aria-hidden', 'true')
-    expect(root.querySelectorAll('div[style*="2px solid"]')).toHaveLength(4)
+    expect(root.querySelectorAll('div[style*="2px solid"]')).toHaveLength(0)
     expect(root).toHaveTextContent('look-aways 0')
     expect(root).toHaveTextContent('duration entries 0')
     const { act } = await import('@testing-library/react')

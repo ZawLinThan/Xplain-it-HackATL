@@ -1,8 +1,27 @@
 import os
+import json
 
 from app import db
 from app.transcribe import TranscriptionError
 from helpers import answer, make_wav, new_session, set_started
+
+
+def test_model_answers_print_only_after_read_aloud(client, llm, capsys):
+    sid = new_session(client, llm)
+    for n in (1, 2, 3):
+        client.get(f"/api/v1/sessions/{sid}/questions/{n}")
+        assert "[model-answer]" not in capsys.readouterr().out
+        response = client.post(f"/api/v1/sessions/{sid}/questions/{n}/read-aloud")
+        assert response.status_code == 200
+        lines = [line for line in capsys.readouterr().out.splitlines()
+                 if line.startswith("[model-answer] ")]
+        assert len(lines) == 1
+        entry = json.loads(lines[0].removeprefix("[model-answer] "))
+        assert entry["question"] == n
+        assert entry["model_answer"] == f"model answer {n}"
+        assert "model_answer" not in response.json()
+        assert answer(client, sid, n, start=False).status_code == 201
+        assert "[model-answer]" not in capsys.readouterr().out
 
 
 def test_normal_answer(client, llm, stt):
