@@ -29,7 +29,7 @@ npm run dev                     # http://localhost:5173
 ```
 
 No backend at all? Set `VITE_MOCK=1` in `frontend/.env` and the front end uses canned data.
-Add `?mock=weak` or `?mock=partial` to the URL for the other outcomes.
+Add `?mock=weak` or `?mock=partial` to the URL for the other outcomes. 
 
 For real questions and real transcription, get a free key at https://console.groq.com and put it
 in `backend/.env` as `GROQ_API_KEY`. Leave `DEMO_MODE=0`.
